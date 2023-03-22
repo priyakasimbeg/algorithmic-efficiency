@@ -10,7 +10,7 @@ import jax
 from torch import nn
 import torch.nn.functional as F
 
-from debug_utils import log_mem_usage
+from algorithmic_efficiency.debug_utils import log_mem_usage
 
 
 class LossType(enum.Enum):
