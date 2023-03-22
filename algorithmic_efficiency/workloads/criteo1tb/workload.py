@@ -115,7 +115,6 @@ class BaseCriteo1TbDlrmSmallWorkload(spec.Workload):
                            global_step: int = 0) -> Dict[str, float]:
     """Run a full evaluation of the model."""
     del model_state
-    del global_step
     num_batches = int(math.ceil(num_examples / global_batch_size))
     if split not in self._eval_iters:
       # These iterators will repeat indefinitely.
