@@ -119,6 +119,7 @@ class BaseCriteo1TbDlrmSmallWorkload(spec.Workload):
     num_batches = int(math.ceil(num_examples / global_batch_size))
     if split not in self._eval_iters:
       # These iterators will repeat indefinitely.
+      log_mem_usage(f"Before making {split} split for eval at step {global_step}")
       self._eval_iters[split] = self._build_input_queue(
           rng,
           split,
@@ -126,10 +127,13 @@ class BaseCriteo1TbDlrmSmallWorkload(spec.Workload):
           global_batch_size,
           num_batches,
           repeat_final_dataset=True)
+      log_mem_usage(f"After making {split} split for eval at step {global_step}")
     loss = 0.0
+    log_mem_usage(f"Before iteration over {split} split for eval at step {global_step}")
     for _ in range(num_batches):
       eval_batch = next(self._eval_iters[split])
       loss += self._eval_batch(params, eval_batch)
+    log_mem_usage(f"After iteration over {split} split for eval at step {global_step}")
     if USE_PYTORCH_DDP:
       dist.all_reduce(loss)
     mean_loss = loss.item() / num_examples

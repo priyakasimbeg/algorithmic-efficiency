@@ -10,6 +10,8 @@ import jax
 from torch import nn
 import torch.nn.functional as F
 
+from debug_utils import log_mem_usage
+
 
 class LossType(enum.Enum):
   SOFTMAX_CROSS_ENTROPY = 0
@@ -296,6 +298,8 @@ class Workload(metaclass=abc.ABCMeta):
                  global_step: int) -> Dict[str, float]:
     """Run a full evaluation of the model."""
     logging.info('Evaluating on the training split.')
+
+    log_mem_usage(f"Before eval train evaluation at step {global_step}")
     train_metrics = self._eval_model_on_split(
         split='eval_train',
         num_examples=self.num_eval_train_examples,
@@ -305,9 +309,11 @@ class Workload(metaclass=abc.ABCMeta):
         rng=rng,
         data_dir=data_dir,
         global_step=global_step)
+    log_mem_usage(f"Before eval train at step {global_step}")
     eval_metrics = {'train/' + k: v for k, v in train_metrics.items()}
     # We always require a validation set.
     logging.info('Evaluating on the validation split.')
+    log_mem_usage(f"Before valid evaluation at step {global_step}")
     validation_metrics = self._eval_model_on_split(
         'validation',
         num_examples=self.num_validation_examples,
@@ -317,6 +323,7 @@ class Workload(metaclass=abc.ABCMeta):
         rng=rng,
         data_dir=data_dir,
         global_step=global_step)
+    log_mem_usage(f"After valid evaluation at step {global_step}")
     for k, v in validation_metrics.items():
       eval_metrics['validation/' + k] = v
     eval_metrics['validation/num_examples'] = self.num_validation_examples
@@ -324,6 +331,7 @@ class Workload(metaclass=abc.ABCMeta):
     try:
       if self.num_test_examples is not None:
         logging.info('Evaluating on the test split.')
+        log_mem_usage(f"Before test evaluaton at step {global_step}")
         test_metrics = self._eval_model_on_split(
             'test',
             num_examples=self.num_test_examples,
@@ -333,6 +341,7 @@ class Workload(metaclass=abc.ABCMeta):
             rng=rng,
             data_dir=imagenet_v2_data_dir if imagenet_v2_data_dir else data_dir,
             global_step=global_step)
+        log_mem_usage(f"Before test evaluaton at step {global_step}")
         for k, v in test_metrics.items():
           eval_metrics['test/' + k] = v
         eval_metrics['test/num_examples'] = self.num_test_examples
