@@ -126,7 +126,7 @@ def get_criteo1tb_dataset(split: str,
   ds = ds.map(parse_fn, num_parallel_calls=16)
   if is_training:
     ds = ds.repeat()
-  ds = ds.prefetch(10)
+  ds = ds.prefetch(2)
 
   if num_batches is not None:
     ds = ds.take(num_batches)
