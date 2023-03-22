@@ -12,6 +12,7 @@ from typing import Optional
 import tensorflow as tf
 
 from algorithmic_efficiency import data_utils
+from algorithmic_efficiency import debug_utils
 
 _NUM_DAY_23_FILES = 36
 
