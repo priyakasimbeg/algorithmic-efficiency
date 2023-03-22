@@ -8,7 +8,7 @@ import torch.distributed as dist
 
 from algorithmic_efficiency import spec
 from algorithmic_efficiency.workloads.criteo1tb import input_pipeline
-
+from algorithmic_efficiency.debug_utils import log_mem_usage
 USE_PYTORCH_DDP = 'LOCAL_RANK' in os.environ
 
 
