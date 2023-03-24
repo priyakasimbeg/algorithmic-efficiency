@@ -25,22 +25,20 @@ def display_top(snapshot, key_type='lineno', limit=10):
             total = sum(stat.size for stat in top_stats)
             print("Total allocated size: %.1f KiB" % (total / 1024))
 
+import tensorflow as tf
 
-tracemalloc.start()
+tf.profiler.experimental.start('logdir')
 print("getting dataset")
 ds = input_pipeline.get_criteo1tb_dataset(split='train', 
                                         shuffle_rng=jax.random.PRNGKey(0), 
                                         data_dir='/home/kasimbeg/data/criteo1tb',
                                         num_dense_features=13,
-                                        global_batch_size=262_144,
+                                        global_batch_size=int(65536/16)
 )
-
 print("iterating dataset")
 print(f"Batch: {0}. RAM USED (GB) {psutil.virtual_memory()[3]/1000000000}")
 for i in range(1000):
     next_batch = next(ds)
-    if (i % 100 == 0):
+    tf.profiler.experimental.stop()
+    if (i % 10 == 0):
         print(f"Batch: {i}. RAM USED (GB) {psutil.virtual_memory()[3]/1000000000}")
-snapshot = tracemalloc.take_snapshot()
-display_top(snapshot)
-

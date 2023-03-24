@@ -17,8 +17,8 @@ class Criteo1TbDlrmSmallWorkload(BaseCriteo1TbDlrmSmallWorkload):
 
   @property
   def eval_batch_size(self) -> int:
-    # return 524_288
     return 524_288
+    # return 65536
 
 
   def _per_example_sigmoid_binary_cross_entropy(
