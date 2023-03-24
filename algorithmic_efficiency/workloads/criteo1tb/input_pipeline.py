@@ -117,16 +117,18 @@ def get_criteo1tb_dataset(split: str,
       tf.data.TextLineDataset,
       cycle_length=128,
       block_length=global_batch_size // 8,
-      num_parallel_calls=128,
+      num_parallel_calls=16,
       deterministic=False)
   if shuffle:
-    ds = ds.shuffle(buffer_size=524_288 * 100, seed=shuffle_rng[1])
+    # ds = ds.shuffle(buffer_size=524_288 * 100, seed=shuffle_rng[1])
+    ds = ds.shuffle(buffer_size=1024, seed=shuffle_rng[1])
+
   ds = ds.batch(global_batch_size, drop_remainder=is_training)
   parse_fn = functools.partial(_parse_example_fn, num_dense_features)
   ds = ds.map(parse_fn, num_parallel_calls=16)
   if is_training:
     ds = ds.repeat()
-  ds = ds.prefetch(tf.data.AUTOTUNE)
+  ds = ds.prefetch(4)
 
   if num_batches is not None:
     ds = ds.take(num_batches)
