@@ -121,14 +121,14 @@ def get_criteo1tb_dataset(split: str,
       deterministic=False)
   if shuffle:
     # ds = ds.shuffle(buffer_size=524_288 * 100, seed=shuffle_rng[1])
-    ds = ds.shuffle(buffer_size=1024, seed=shuffle_rng[1])
+    ds = ds.shuffle(buffer_size=524288 * 100, seed=shuffle_rng[1])
 
   ds = ds.batch(global_batch_size, drop_remainder=is_training)
   parse_fn = functools.partial(_parse_example_fn, num_dense_features)
   ds = ds.map(parse_fn, num_parallel_calls=16)
   if is_training:
     ds = ds.repeat()
-  ds = ds.prefetch(4)
+  ds = ds.prefetch(10)
 
   if num_batches is not None:
     ds = ds.take(num_batches)
@@ -137,10 +137,13 @@ def get_criteo1tb_dataset(split: str,
   if repeat_final_dataset:
     ds = ds.repeat()
 
-  ds = map(
-      functools.partial(
-          data_utils.shard_and_maybe_pad_np,
-          global_batch_size=global_batch_size),
-      ds)
+  # ds = map(
+  #     functools.partial(
+  #         data_utils.shard_and_maybe_pad_np,
+  #         global_batch_size=global_batch_size),
+  #     ds)
+  # ds.map(functools.partial(
+  #         data_utils.shard_and_maybe_pad_np,
+  #         global_batch_size=global_batch_size))
 
   return ds

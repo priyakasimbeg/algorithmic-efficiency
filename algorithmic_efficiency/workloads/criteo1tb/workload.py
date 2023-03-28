@@ -95,7 +95,7 @@ class BaseCriteo1TbDlrmSmallWorkload(spec.Workload):
         global_batch_size=global_batch_size,
         num_batches=num_batches,
         repeat_final_dataset=repeat_final_dataset)
-
+        
     for batch in iter(ds):
       yield batch
 
