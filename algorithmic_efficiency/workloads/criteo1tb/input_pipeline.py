@@ -155,7 +155,8 @@ def generate_example_fn():
   int_defaults = [[0.0] for _ in range(num_dense_features)]
   categorical_defaults = [['00000000'] for _ in range(len(_VOCAB_SIZES))]
   record_defaults = label_defaults + int_defaults + categorical_defaults
-g  num_labels = 1
+  fields = [tf.constant([1.0] * batch_size)] * 14 + [tf.constant(['1'] * batch_size)] * 26
+  num_labels = 1
   features = {}
   features['targets'] = tf.reshape(fields[0], (-1,))
 
@@ -203,10 +204,5 @@ def get_criteo1tb_dataset_from_generator(split: str,
   if repeat_final_dataset:
     ds = ds.repeat()
 
-  # ds = map(
-  #     functools.partial(
-  #         data_utils.shard_and_maybe_pad_np,
-  #         global_batch_size=global_batch_size),
-  #     ds)
 
   return ds
