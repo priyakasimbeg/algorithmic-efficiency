@@ -139,11 +139,11 @@ def get_criteo1tb_dataset(split: str,
   if repeat_final_dataset:
     ds = ds.repeat()
 
-  # ds = map(
-  #     functools.partial(
-  #         data_utils.shard_and_maybe_pad_np,
-  #         global_batch_size=global_batch_size),
-  #     ds)
+  ds = map(
+      functools.partial(
+          data_utils.shard_and_maybe_pad_np,
+          global_batch_size=global_batch_size),
+      ds)
 
   return ds
 

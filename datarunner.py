@@ -6,7 +6,7 @@ import os
 import tensorflow as tf
 
 print("Getting dataset")
-ds = input_pipeline.get_criteo1tb_dataset_from_generator(split='train', 
+ds = input_pipeline.get_criteo1tb_dataset(split='train', 
                                         shuffle_rng=jax.random.PRNGKey(0), 
                                         data_dir='/home/kasimbeg/data/criteo1tb',
                                         num_dense_features=13,
@@ -18,3 +18,4 @@ for i in range(1000):
     next_batch = next(ds)
     if (i % 100 == 0):
         print(f"Batch: {i}. RAM USED (GB) {psutil.virtual_memory()[3]/1000000000}")
+ta

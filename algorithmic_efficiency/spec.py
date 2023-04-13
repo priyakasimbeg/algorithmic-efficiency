@@ -341,7 +341,7 @@ class Workload(metaclass=abc.ABCMeta):
             rng=rng,
             data_dir=imagenet_v2_data_dir if imagenet_v2_data_dir else data_dir,
             global_step=global_step)
-        log_mem_usage(f"Before test evaluaton at step {global_step}")
+        log_mem_usage(f"After test evaluaton at step {global_step}")
         for k, v in test_metrics.items():
           eval_metrics['test/' + k] = v
         eval_metrics['test/num_examples'] = self.num_test_examples

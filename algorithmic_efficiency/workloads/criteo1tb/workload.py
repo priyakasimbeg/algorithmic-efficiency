@@ -128,12 +128,14 @@ class BaseCriteo1TbDlrmSmallWorkload(spec.Workload):
           repeat_final_dataset=True)
       log_mem_usage(f"After making {split} split for eval at step {global_step}")
     loss = 0.0
-    log_mem_usage(f"Before iteration over {split} split for eval at step {global_step}")
+    log_mem_usage(f"Before iteration over {split} split for eval at step {global_step} over {num_batches}")
     for _ in range(num_batches):
       eval_batch = next(self._eval_iters[split])
-      loss += self._eval_batch(params, eval_batch)
-    log_mem_usage(f"After iteration over {split} split for eval at step {global_step}")
+      loss += 0
+      # loss += self._eval_batch(params, eval_batch)
+    log_mem_usage(f"After iteration over {split} split for eval at step {global_step} over {num_batches}")
     if USE_PYTORCH_DDP:
       dist.all_reduce(loss)
-    mean_loss = loss.item() / num_examples
+    mean_loss = 0.5
+    # mean_loss = loss.item() / num_examples
     return {'loss': mean_loss}

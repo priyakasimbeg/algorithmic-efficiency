@@ -5,6 +5,7 @@ from typing import Optional
 import os
 import functools
 import matplotlib.pyplot as plt
+import numpy as np
 
 _NUM_DAY_23_FILES = 36
 
@@ -104,7 +105,7 @@ def get_criteo1tb_dataset(split: str,
         deterministic=False)
 
   else:
-     ds = tf.data.TextLineDataset(train_files, buffer_size= test_line_ds_buffer_size)
+     ds = tf.data.TextLineDataset(train_files, buffer_size= text_line_ds_buffer_size)
 
   if shuffle:
     ds = ds.shuffle(buffer_size=524_288 * 100, seed=shuffle_rng[1])
@@ -139,10 +140,7 @@ def make_dataset_and_iter(save_dir,
               text_line_ds_buffer_size: int = 256 * 1024,
               num_files: int = 849,
               prefetch: int = 10,):
-    test_name = (f's_{shuffle}_i_{interleave}_p_{num_parallel_calls_interleave}'
-                f'_c_{cycle_length}_block_{block_length_fraction}'
-                f'_buff_{text_line_ds_buffer_size}_num_files_{num_files}'
-                f'_prefetch_{prefetch}')
+    test_name = (f'_cycle_length_{cycle_length}_block_size_fraction_{block_length_fraction}')
     print(f'Running test {test_name}')
     mem_usage = []
     ds = iter(get_criteo1tb_dataset(split='train', 
@@ -162,33 +160,23 @@ def make_dataset_and_iter(save_dir,
     m = get_ram_usage()                          
     mem_usage.append(m)
     print(f"Batch: {0}: RAM USED (GB) {m}")
-    for i in range(1, 1001):
+    for i in range(1, 2001):
         next_batch = next(ds)
         if (i % 100 == 0) or (i == 1):
             m = get_ram_usage()
             mem_usage.append(m)
             print(f"Batch: {i}. RAM USED (GB) {m}")
-    
-    np.save(os.path.join(save_dir, test_name, mem_usage))
+     
+    np.save(os.path.join(save_dir, test_name), np.array(mem_usage))
     
 def run_test(save_dir):
   if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 
-  for global_batch_size in [65536*8, 65536*4]:
-    for interleave in [True, False]:
-      for cycle_length in [128, 64]:
-        for block_length_fraction in [8, 16]:
-          for text_line_ds_buffer_size in [256 * 1024, 128 * 1024]:
-            for num_files in [849, 400]:
-              for prefetch in [10, 5]:
-                make_dataset_and_iter(save_dir,
-                global_batch_size=global_batch_size,
-                interleave=interleave,
-                cycle_length=cycle_length,
-                block_length_fraction=block_length_fraction,
-                text_line_ds_buffer_size=text_line_ds_buffer_size,
-                num_files=num_files,
-                prefetch=prefetch,)
+  for block_length_fraction in [8, 16]:
+    for cycle_length in [128, 64]:
+      make_dataset_and_iter(save_dir,
+      cycle_length=cycle_length,
+      block_length_fraction=block_length_fraction,)
 
-run_test('criteo_debugging_ram_usage_test')
+run_test('criteo_debugging_ram_usage_test_extended')
