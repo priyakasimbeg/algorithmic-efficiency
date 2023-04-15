@@ -8,12 +8,10 @@ https://github.com/NVIDIA/DeepLearningExamples/blob/4e764dcd78732ebfe105fc05ea3d
 import functools
 import os
 from typing import Optional
-import numpy as np
 
 import tensorflow as tf
 
 from algorithmic_efficiency import data_utils
-from algorithmic_efficiency import debug_utils
 
 _NUM_DAY_23_FILES = 36
 
@@ -60,10 +58,9 @@ def _parse_example_fn(num_dense_features, example):
   int_defaults = [[0.0] for _ in range(num_dense_features)]
   categorical_defaults = [['00000000'] for _ in range(len(_VOCAB_SIZES))]
   record_defaults = label_defaults + int_defaults + categorical_defaults
-  # fields = tf.io.decode_csv(
-  #     example, record_defaults, field_delim='\t', na_value='-1')
-  batch_size = 524_288
-  fields = [tf.constant([1.0] * batch_size)] * 14 + [tf.constant(['1'] * batch_size)] * 26
+  fields = tf.io.decode_csv(
+      example, record_defaults, field_delim='\t', na_value='-1')
+
   num_labels = 1
   features = {}
   features['targets'] = tf.reshape(fields[0], (-1,))
@@ -119,12 +116,10 @@ def get_criteo1tb_dataset(split: str,
       tf.data.TextLineDataset,
       cycle_length=128,
       block_length=global_batch_size // 8,
-      num_parallel_calls=16,
+      num_parallel_calls=128,
       deterministic=False)
   if shuffle:
-    # ds = ds.shuffle(buffer_size=524_288 * 100, seed=shuffle_rng[1])
-    ds = ds.shuffle(buffer_size=524288 * 100, seed=shuffle_rng[1])
-
+    ds = ds.shuffle(buffer_size=524_288 * 100, seed=shuffle_rng[1])
   ds = ds.batch(global_batch_size, drop_remainder=is_training)
   parse_fn = functools.partial(_parse_example_fn, num_dense_features)
   ds = ds.map(parse_fn, num_parallel_calls=16)
@@ -144,65 +139,5 @@ def get_criteo1tb_dataset(split: str,
           data_utils.shard_and_maybe_pad_np,
           global_batch_size=global_batch_size),
       ds)
-
-  return ds
-
-def generate_example_fn():
-  """Parser function for pre-processed Criteo TSV records."""
-  num_dense_features=13
-  batch_size = 524_288
-  label_defaults = [[0.0]]
-  int_defaults = [[0.0] for _ in range(num_dense_features)]
-  categorical_defaults = [['00000000'] for _ in range(len(_VOCAB_SIZES))]
-  record_defaults = label_defaults + int_defaults + categorical_defaults
-  fields = [tf.constant([1.0] * batch_size)] * 14 + [tf.constant(['1'] * batch_size)] * 26
-  num_labels = 1
-  features = {}
-  features['targets'] = tf.reshape(fields[0], (-1,))
-
-  int_features = []
-  for idx in range(num_dense_features):
-    positive_val = tf.nn.relu(fields[idx + num_labels])
-    int_features.append(tf.math.log(positive_val + 1))
-  int_features = tf.stack(int_features, axis=1)
-
-  cat_features = []
-  for idx in range(len(_VOCAB_SIZES)):
-    field = fields[idx + num_dense_features + num_labels]
-    # We append the column index to the string to make the same id in different
-    # columns unique.
-    cat_features.append(
-        tf.strings.to_hash_bucket_fast(field + str(idx), _VOCAB_SIZES[idx]))
-  cat_features = tf.cast(
-      tf.stack(cat_features, axis=1), dtype=int_features.dtype)
-  features['inputs'] = tf.concat([int_features, cat_features], axis=1)
-
-  while True:
-    yield features
-
-
-def get_criteo1tb_dataset_from_generator(split: str,
-                          shuffle_rng,
-                          data_dir: str,
-                          num_dense_features: int,
-                          global_batch_size: int,
-                          num_batches: Optional[int] = None,
-                          repeat_final_dataset: bool = False):
-  """Get the Criteo 1TB dataset for a given split."""
-  ds = tf.data.Dataset.from_generator(generate_example_fn,
-                                      output_types={'inputs':tf.float32, 'targets':tf.float32},)
-  # ds = ds.map(parse_fn, num_parallel_calls=16)
-  is_training=True
-  if is_training:
-    ds = ds.repeat()
-  ds = ds.prefetch(10)
-
-  if num_batches is not None:
-    ds = ds.take(num_batches)
-
-  # We do not use ds.cache() because the dataset is so large that it would OOM.
-  if repeat_final_dataset:
-    ds = ds.repeat()
-
 
   return ds
