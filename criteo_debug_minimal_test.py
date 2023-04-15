@@ -8,11 +8,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 DEFAULT_CYCLE_LENGTH = 128
-DEFAULT_BLOCK_LENGTH = 865536
+DEFAULT_BLOCK_LENGTH = 65536
 BATCH_SIZE = 524288
 NUM_FILES = 849
 TEST_DATA_DIR = 'test_data'
 
+# Run also with:
+# LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libtcmalloc_minimal.so.4 python criteo_debug_minimal_test.py
 def generate_test_data_file(save_path, num_lines=5000_000):
   if not os.path.exists(os.path.dirname(save_path)):
     os.makedirs(os.path.dirname(save_path))
@@ -33,25 +35,36 @@ def generate_dataset_fn():
 def get_fake_dataset(cycle_length=DEFAULT_CYCLE_LENGTH, 
                     block_length=DEFAULT_BLOCK_LENGTH,
                     source=None,):
-  if source == None:
+  if source is None:
     print("Getting dataset from generator")
     ds = tf.data.Dataset.from_tensor_slices([1] * 847)
     ds = ds.interleave(lambda x: tf.data.Dataset.from_generator(generate_dataset_fn,
                                                               output_signature=tf.data.DatasetSpec(tf.TensorSpec(shape=(), dtype=tf.float32, name=None), tf.TensorShape([]))),
                                   cycle_length=cycle_length,
-                                  block_length=block_length)
+                                  block_length=block_length,
+                                  num_parallel_calls=16,
+                                  deterministic=False)
   else:
+    shuffle_rng=jax.random.PRNGKey(0)
     print("Getting dataset from test_data")
+    # source = '/home/kasimbeg/data/criteo1tb/day_0_00'
+    # train_files = [source] * NUM_FILES
+
     data_dir = '/home/kasimbeg/data/criteo1tb'
     files = os.listdir(data_dir)
     train_files = [os.path.join(data_dir, f) for f in files if int(f.split("_")[1]) in range(0,23)]
     train_files = train_files[:NUM_FILES]
-    ds = tf.data.Dataset.list_files(train_files)
-    # ds = tf.data.Dataset.list_files([source] * NUM_FILES)
+    ds = tf.data.Dataset.list_files(train_files, shuffle=True, seed=shuffle_rng[0])
+
     ds = ds.interleave(tf.data.TextLineDataset, 
                        cycle_length=cycle_length,
-                       block_length=block_length)
-  ds = ds.batch(BATCH_SIZE)
+                       block_length=block_length,
+                       num_parallel_calls=16,
+                       deterministic=False)
+  
+    ds = ds.shuffle(buffer_size=524_288 * 100, seed=shuffle_rng[1])
+    ds = ds.batch(524_288, drop_remainder=True)
+
   return ds
 
 def get_ram_usage():
@@ -86,8 +99,8 @@ def run_test(save_dir, source=None):
   if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 
-  for cycle_length in [128, 64]:
-    for block_length in [DEFAULT_BLOCK_LENGTH, int(DEFAULT_BLOCK_LENGTH/2)]:
+  for cycle_length in [64]:
+    for block_length in [DEFAULT_BLOCK_LENGTH]:
           make_dataset_and_iter(save_dir,
           cycle_length=cycle_length,
           block_length=block_length,
@@ -95,10 +108,7 @@ def run_test(save_dir, source=None):
 
 print('Generating data')
 source_path = os.path.join(TEST_DATA_DIR, 'criteo_dummy_data')
-generate_test_data_file(save_path=source_path)
+# generate_test_data_file(save_path=source_path)
 print('Running test')
-run_test(save_dir='criteo_debugging_ram_usage_test_fake_data',
+run_test(save_dir='criteo_debugging_ram_usage_test_gc',
          source=source_path)
-# for i in generate_example_fn():
-#   print(i)
-#   break
