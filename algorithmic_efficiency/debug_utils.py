@@ -1,7 +1,8 @@
 import psutil
 from absl import logging
 
-DEBUG_FILE = '/home/kasimbeg/debug_log.txt'
+now = datetime.datetime.now().strftime('-%Y-%m-%d-%H-%M-%S')
+DEBUG_FILE = f'/home/kasimbeg/logs/debug_log_{now}.txt'
 def log_mem_usage(event):
     message = f"{event}: RAM USED (GB) {psutil.virtual_memory()[3]/1000000000}\n"
     logging.info(message)
