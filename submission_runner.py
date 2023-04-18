@@ -261,7 +261,8 @@ def train_once(
   logging.info('Initializing metrics bundle.')
   # Bookkeeping.
   train_state = {
-      'goal_reached': False,
+      'validation_goal_reached': False,
+      'test_goal_reached': False,
       'is_time_remaining': True,
       'last_eval_time': 0,
       'accumulated_submission_time': 0,
@@ -310,8 +311,11 @@ def train_once(
   event = "Before starting training loop and logger metrics bundle"
   logging.info(f"{event}: RAM USED (GB) {psutil.virtual_memory()[3]/1000000000}")
   logging.info('Starting training loop.')
+  goals_reached = (
+      train_state['validation_goal_reached'] and
+      train_state['test_goal_reached'])
   while train_state['is_time_remaining'] and \
-      not train_state['goal_reached'] and \
+      not goals_reached and \
       not train_state['training_complete']:
     step_rng = prng.fold_in(rng, global_step)
     data_select_rng, update_rng, eval_rng = prng.split(step_rng, 3)
@@ -383,9 +387,12 @@ def train_once(
               train_state['accumulated_submission_time'])
           latest_eval_result['total_duration'] = time_since_start
           eval_results.append((global_step, latest_eval_result))
-          train_state['goal_reached'] = (
-              workload.has_reached_validation_target(latest_eval_result) and
-              workload.has_reached_test_target(latest_eval_result))
+          train_state['validation_goal_reached'] = (
+              workload.has_reached_validation_target(latest_eval_result) or
+              train_state['validation_goal_reached'])
+          train_state['test_goal_reached'] = (
+              workload.has_reached_test_target(latest_eval_result) or
+              train_state['test_goal_reached'])
           event = f"After eval at step {global_step}"
           logging.info(f"{event}: RAM USED (GB) {psutil.virtual_memory()[3]/1000000000}")
           if log_dir is not None:
