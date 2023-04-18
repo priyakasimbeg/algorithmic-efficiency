@@ -77,7 +77,7 @@ class Criteo1TbDlrmSmallWorkload(BaseCriteo1TbDlrmSmallWorkload):
     """Only dropout is used."""
     del aux_dropout_rate
     self._model = models.DlrmSmall(
-        vocab_size=self.vocab_size,gi
+        vocab_size=self.vocab_size,
         num_dense_features=self.num_dense_features,
         mlp_bottom_dims=self.mlp_bottom_dims,
         mlp_top_dims=self.mlp_top_dims,
