@@ -24,7 +24,7 @@ RUN mkdir -p experiment_runs/
 
 # Install Algorithmic efficiency repo
 RUN echo "Setting up algorithmic_efficiency repo"
-RUN git clone $GIT_URL && cd algorithmic-efficiency
+RUN git clone $GIT_URL && cd algorithmic-efficiency && git checkout criteo_input_pipeline
 
 RUN cd algorithmic-efficiency && pip install -e '.[full]'
 RUN cd algorithmic-efficiency && pip install -e '.[wandb]'
