@@ -361,13 +361,21 @@ def train_once(
         workload.max_allowed_runtime_sec)
     # Check if submission is eligible for an untimed eval.
     if ((train_step_end_time - train_state['last_eval_time']) >=
+<<<<<<< HEAD
         workload.eval_period_time_sec or
         train_state['training_complete']) or (global_step == 1):
+=======
+        workload.eval_period_time_sec or train_state['training_complete']):
+>>>>>>> origin_main
       with profiler.profile('Evaluation'):
         try:
           eval_start_time = time.time()
           if USE_PYTORCH_DDP:
+<<<<<<< HEAD
             eval_start_time = sync_ddp_time(eval_step_end_time, DEVICE)
+=======
+            eval_start_time = sync_ddp_time(eval_start_time, DEVICE)
+>>>>>>> origin_main
           latest_eval_result = workload.eval_model(global_eval_batch_size,
                                                    model_params,
                                                    model_state,
@@ -430,11 +438,11 @@ def train_once(
                   .save_intermediate_checkpoints)
           logging_end_time = time.time()
           if USE_PYTORCH_DDP:
-            logging_end_time = sync_ddp_time(checkpoint_end_time, DEVICE)
+            logging_end_time = sync_ddp_time(logging_end_time, DEVICE)
 
           train_state['last_eval_time'] = logging_end_time
-          train_state[
-              'accumulated_logging_time'] += logging_end_time - logging_start_time
+          train_state['accumulated_logging_time'] += (
+              logging_end_time - logging_start_time)
 
         except RuntimeError as e:
           logging.exception(f'Eval step {global_step} error.\n')
