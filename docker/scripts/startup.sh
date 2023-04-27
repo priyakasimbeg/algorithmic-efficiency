@@ -14,6 +14,8 @@ do
         w) WORKLOAD=${OPTARG};;
         b) DEBUG_MODE=${OPTARG};;
         m) MAX_STEPS=${OPTARG};;
+        o) OVERWRITE=${OPTARG};;
+        c) SAVE_CHECKPOINTS=${OPTARG};;
     esac
 done
 
@@ -65,6 +67,17 @@ if [[ ! -z ${SUBMISSION_PATH+x} ]]
         MAX_STEPS_FLAG="--max_global_steps=${MAX_STEPS}"
     fi
 
+    # Set overwrite flag to false by default if not set
+    if [[ ! -z ${OVERWRITE+x} ]]
+    then 
+        OVERWRITE="False"
+    fi
+
+    if [[ ! -z ${SAVE_CHECKPOINTS+x} ]]
+    then 
+        SAVE_CHECKPOINTS="False"
+    fi
+
     # Define special flags for imagenet and librispeech workloads
     if [[ ${DATASET} == 'imagenet' ]]
     then 
@@ -84,9 +97,11 @@ if [[ ! -z ${SUBMISSION_PATH+x} ]]
         --num_tuning_trials=1  \
         --experiment_dir=${EXPERIMENT_DIR}  \
         --experiment_name=${EXPERIMENT_NAME} \
+        --overwrite=${OVERWRITE} \
+        --save_checkpoints=${SAVE_CHECKPOINTS}
         ${MAX_STEPS_FLAG}  \
-        ${SPECIAL_FLAGS} 2>&1 | tee ${LOG_FILE}"
-    echo $COMMAND
+        ${SPECIAL_FLAGS} 2>&1 | tee -a ${LOG_FILE}"
+    echo $COMMAND > ${LOG_FILE}
     eval $COMMAND
 
     /google-cloud-sdk/bin/gsutil -m cp -r ${EXPERIMENT_DIR}/${EXPERIMENT_NAME}/${WORKLOAD}_${FRAMEWORK} ${EXPERIMENT_BUCKET}/${EXPERIMENT_NAME}/
