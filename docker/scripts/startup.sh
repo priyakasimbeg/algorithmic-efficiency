@@ -3,7 +3,7 @@
 # Defaults
 DEBUG_MODE="false"
 
-while getopts d:f:s:t:e:w:b:m: flag
+while getopts d:f:s:t:e:w:b:m:o:c: flag
 do
     case "${flag}" in
         d) DATASET=${OPTARG};;
