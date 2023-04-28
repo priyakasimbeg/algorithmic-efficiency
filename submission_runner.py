@@ -626,7 +626,8 @@ def main(_):
                                               FLAGS.workload,
                                               FLAGS.framework,
                                               experiment_name,
-                                              FLAGS.resume_last_run)
+                                              FLAGS.resume_last_run,
+                                              FLAGS.overwrite)
 
   score = score_submission_on_workload(
       workload=workload,
