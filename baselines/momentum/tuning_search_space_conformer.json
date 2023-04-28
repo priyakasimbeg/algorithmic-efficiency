@@ -14,6 +14,11 @@
             4999
         ]
     },
+    "warmup_factor": {
+        "feasible_points": [
+            0.05
+        ]
+    },
     "decay_steps_factor": {
         "feasible_points": [
             0.9249881733126807
