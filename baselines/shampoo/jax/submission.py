@@ -12,6 +12,8 @@ import optax
 from algorithmic_efficiency import spec
 from baselines.shampoo.jax.distributed_shampoo import distributed_shampoo
 
+from absl import logging 
+
 _GRAD_CLIP_EPS = 1e-6
 
 
@@ -24,7 +26,7 @@ def init_optimizer_state(workload: spec.Workload,
   del model_params
   del model_state
   del rng
-
+  logging.info("initalizing optimizer state")
   def jax_cosine_warmup(step_hint: int, hyperparameters):
     # Create learning rate schedule.
     warmup_steps = int(hyperparameters.warmup_factor * step_hint)
@@ -86,14 +88,17 @@ def pmapped_train_step(workload,
     summed_loss = loss_dict['summed']
     n_valid_examples = loss_dict['n_valid_examples']
     return summed_loss, (n_valid_examples, new_model_state)
-
+  logging.info("In pmapped train step.")
   grad_fn = jax.value_and_grad(_loss_fn, has_aux=True)
+  logging.info("grad_fn")
   (summed_loss, (n_valid_examples, new_model_state)), grad = grad_fn(
       current_param_container)
   # Get correct global mean loss and grad.
+  logging.info("lax psum")
   (summed_loss, n_valid_examples, grad) = lax.psum(
       (summed_loss, n_valid_examples, grad), axis_name='batch')
   loss = summed_loss / n_valid_examples
+  logging.info("grad tree map")
   grad = jax.tree_map(lambda x: x / n_valid_examples, grad)
 
   grad_norm = jnp.sqrt(
@@ -103,10 +108,19 @@ def pmapped_train_step(workload,
     grad_scaling_factor = grad_clip / (grad_norm + _GRAD_CLIP_EPS)
     grad_scaling_factor = jax.lax.clamp(min=0.0, x=grad_scaling_factor, max=1.0)
     grad = jax.tree_map(lambda x: x * grad_scaling_factor, grad)
-
+  logging.info("opt_update_fn")
   updates, new_optimizer_state = opt_update_fn(grad, optimizer_state,
                                                current_param_container)
+  logging.info("getting update_params")
   updated_params = optax.apply_updates(current_param_container, updates)
+  jax.block_until_ready(updated_params)
+  logging.info("block new optimizer state")
+  jax.block_until_ready(new_optimizer_state)
+  logging.info("block new model state")
+  jax.block_until_ready(new_model_state)
+  logging.info("block grad norm")
+  jax.block_until_ready(grad_norm)
+  logging.info("got all updatess")
   return new_optimizer_state, updated_params, new_model_state, loss, grad_norm
 
 
@@ -125,7 +139,7 @@ def update_params(workload: spec.Workload,
   del current_params_types
   del loss_type
   del eval_results
-
+  logging.info("In update params")
   optimizer_state, opt_update_fn = optimizer_state
   per_device_rngs = jax.random.split(rng, jax.local_device_count())
   if hasattr(hyperparameters, 'label_smoothing'):
@@ -136,6 +150,7 @@ def update_params(workload: spec.Workload,
     grad_clip = hyperparameters.grad_clip
   else:
     grad_clip = None
+  logging.info("Running train step step")
   outputs = pmapped_train_step(workload,
                                opt_update_fn,
                                model_state,
@@ -145,6 +160,7 @@ def update_params(workload: spec.Workload,
                                per_device_rngs,
                                grad_clip,
                                label_smoothing)
+  logging.info("unpacking train step output")
   new_optimizer_state, new_params, new_model_state, loss, grad_norm = outputs
 
   # Log loss, grad_norm.

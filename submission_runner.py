@@ -330,6 +330,7 @@ def train_once(
 
     if USE_PYTORCH_DDP:
       train_step_start_time = sync_ddp_time(train_step_start_time, DEVICE)
+    logging.info('Selecting data')
     with profiler.profile('Data selection'):
       batch = data_selection(workload,
                              input_queue,
@@ -340,6 +341,7 @@ def train_once(
                              global_step,
                              data_select_rng)
     try:
+      logging.info('updating params')
       with profiler.profile('Update parameters'):
         optimizer_state, model_params, model_state = update_params(
             workload=workload,
