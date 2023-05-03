@@ -49,7 +49,8 @@ def init_optimizer_state(workload: spec.Workload,
       beta2=hyperparameters.beta2,
       weight_decay=hyperparameters.weight_decay,
       batch_axis_name='batch',
-      num_devices_for_pjit=8,)
+      num_devices_for_pjit=8,
+      eigh=False)
   params_zeros_like = jax.tree_map(lambda s: jnp.zeros(s.shape_tuple),
                                    workload.param_shapes)
   optimizer_state = opt_init_fn(params_zeros_like)
