@@ -49,7 +49,7 @@ then
 RSYNC_DATA='true' # Set default argument
 fi 
 
-if [[[ ! -d ${DATA_DIR} ]] && [[${RSYNC_DATA} == 'true']]]
+if [[ ! -d ${DATA_DIR} ]] && [[${RSYNC_DATA} == 'true']]
 then
     mkdir -p ${DATA_DIR}
 fi 
