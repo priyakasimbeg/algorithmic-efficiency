@@ -45,8 +45,9 @@ fi
 
 # Copy data from MLCommons bucket if data has not been downloaded yet
 if [[ ! -z ${RSYNC_DATA+x} ]]
-    then 
-    RSYNC_DATA='true' # Set default argument
+then 
+RSYNC_DATA='true' # Set default argument
+fi 
 
 if [[ ! -d ${DATA_DIR} ]] && [[${RSYNC_DATA} == 'true']]
 then
