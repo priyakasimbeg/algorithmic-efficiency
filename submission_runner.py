@@ -273,6 +273,7 @@ def train_once(
       'accumulated_submission_time': 0,
       'accumulated_eval_time': 0,
       'accumulated_logging_time': 0,
+      'accumulated_data_selection_time': 0,
   }
   global_step = 0
   eval_results = []
@@ -339,6 +340,9 @@ def train_once(
                              hyperparameters,
                              global_step,
                              data_select_rng)
+    data_selection_end_time = time.time()
+    if USE_PYTORCH_DDP:
+      train_step_end_time = sync_ddp_time(data_selection_end_time, DEVICE)
     try:
       with profiler.profile('Update parameters'):
         optimizer_state, model_params, model_state = update_params(
@@ -363,6 +367,8 @@ def train_once(
     if USE_PYTORCH_DDP:
       train_step_end_time = sync_ddp_time(train_step_end_time, DEVICE)
 
+    train_state['accumulated_data_selection_time'] += (
+        data_selection_end_time - train_step_start_time)
     train_state['accumulated_submission_time'] += (
         train_step_end_time - train_step_start_time)
     train_state['is_time_remaining'] = (

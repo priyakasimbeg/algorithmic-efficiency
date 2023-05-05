@@ -33,7 +33,7 @@ RUN cd algorithmic-efficiency && pip install -e '.[wandb]'
 
 RUN cd algorithmic-efficiency && git fetch origin 
 RUN cd algorithmic-efficiency && git checkout timing_test_2 
-RUN cd algorithmic-efficiency && git pull && git checkout 4987
+RUN cd algorithmic-efficiency && git pull && git checkout fd2e
 
 # Todo: remove this, this is temporary for developing
 COPY scripts/startup.sh /algorithmic-efficiency/docker/scripts/startup.sh
