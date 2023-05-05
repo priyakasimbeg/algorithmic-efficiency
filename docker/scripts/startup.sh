@@ -54,7 +54,7 @@ then
     mkdir -p ${DATA_DIR}
 fi 
 
-if [[ $RSYNC_DATA == 'true']]
+if [[ $RSYNC_DATA == 'true' ]]
 then
     ./google-cloud-sdk/bin/gsutil -m rsync -r ${DATA_BUCKET} ${DATA_DIR}
 fi 
