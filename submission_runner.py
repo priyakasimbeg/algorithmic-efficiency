@@ -413,6 +413,9 @@ def train_once(
               'total_duration'] = eval_end_time - global_start_time
           latest_eval_result['accumulated_submission_time'] = train_state[
               'accumulated_submission_time']
+          latest_eval_result['accumulated_data_selection_time'] = train_state[
+              'accumulated_data_selection_time'
+          ]
           latest_eval_result['accumulated_eval_time'] = train_state[
               'accumulated_eval_time']
           latest_eval_result['accumulated_logging_time'] = train_state[
