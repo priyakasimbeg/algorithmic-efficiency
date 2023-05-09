@@ -21,7 +21,6 @@ do
     esac
 done
 
-export XLA_PYTHON_CLIENT_PREALLOCATE=false
 
 ROOT_DATA_BUCKET="gs://mlcommons-data"
 ROOT_DATA_DIR="/data"
