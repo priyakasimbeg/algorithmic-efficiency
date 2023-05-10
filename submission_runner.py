@@ -345,18 +345,18 @@ def train_once(
       train_step_end_time = sync_ddp_time(data_selection_end_time, DEVICE)
     try:
       with profiler.profile('Update parameters'):
-        optimizer_state, model_params, model_state = update_params(
-            workload=workload,
-            current_param_container=model_params,
-            current_params_types=workload.model_params_types,
-            model_state=model_state,
-            hyperparameters=hyperparameters,
-            batch=batch,
-            loss_type=workload.loss_type,
-            optimizer_state=optimizer_state,
-            eval_results=eval_results,
-            global_step=global_step,
-            rng=update_rng)
+        # optimizer_state, model_params, model_state = update_params(
+        #     workload=workload,
+        #     current_param_container=model_params,
+        #     current_params_types=workload.model_params_types,
+        #     model_state=model_state,
+        #     hyperparameters=hyperparameters,
+        #     batch=batch,
+        #     loss_type=workload.loss_type,
+        #     optimizer_state=optimizer_state,
+        #     eval_results=eval_results,
+        #     global_step=global_step,
+        #     rng=update_rng)
     except spec.TrainingCompleteError:
       train_state['training_complete'] = True
     global_step += 1
