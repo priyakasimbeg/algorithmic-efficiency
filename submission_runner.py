@@ -357,8 +357,8 @@ def train_once(
     #         eval_results=eval_results,
     #         global_step=global_step,
     #         rng=update_rng)
-    except spec.TrainingCompleteError:
-      train_state['training_complete'] = True
+    # except spec.TrainingCompleteError:
+    #   train_state['training_complete'] = True
     global_step += 1
     if (max_global_steps is not None) and (global_step == max_global_steps):
       train_state['training_complete'] = True
