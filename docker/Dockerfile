@@ -33,7 +33,7 @@ RUN cd algorithmic-efficiency && pip install -e '.[wandb]'
 
 RUN cd algorithmic-efficiency && git fetch origin
 RUN cd algorithmic-efficiency && git pull && git checkout adafactor_single_gpu
-RUN cd algorithmic-efficiency && git pull && git checkout 5fbaf14
+RUN cd algorithmic-efficiency && git pull && git checkout 698f48a
 
 
 # Todo: remove this, this is temporary for developing

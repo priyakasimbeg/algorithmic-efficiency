@@ -32,8 +32,8 @@ class ConformerConfig:
   """Global hyperparameters used to minimize obnoxious kwarg plumbing."""
   vocab_size: int = 1024
   dtype: Any = jnp.float32
-  encoder_dim: int = 512
-  num_attention_heads: int = 8
+  encoder_dim: int = 512/2
+  num_attention_heads: int = 8/2
   num_encoder_layers: int = 4
   attention_dropout_rate: float = 0.0
   # If None, defaults to 0.1.
