@@ -325,12 +325,12 @@ def train_once(
       not train_state['training_complete']:
 
     train_step_start_time = time.time()
+    if USE_PYTORCH_DDP:
+      train_step_start_time = sync_ddp_time(train_step_start_time, DEVICE)
 
     step_rng = prng.fold_in(rng, global_step)
     data_select_rng, update_rng, eval_rng = prng.split(step_rng, 3)
 
-    if USE_PYTORCH_DDP:
-      train_step_start_time = sync_ddp_time(train_step_start_time, DEVICE)
     with profiler.profile('Data selection'):
       batch = data_selection(workload,
                              input_queue,
@@ -342,7 +342,7 @@ def train_once(
                              data_select_rng)
     data_selection_end_time = time.time()
     if USE_PYTORCH_DDP:
-      train_step_end_time = sync_ddp_time(data_selection_end_time, DEVICE)
+      data_selection_end_time = sync_ddp_time(data_selection_end_time, DEVICE)
     try:
       with profiler.profile('Update parameters'):
         optimizer_state, model_params, model_state = update_params(
