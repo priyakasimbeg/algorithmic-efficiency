@@ -136,10 +136,10 @@ def update_params(workload: spec.Workload,
               'loss': loss.item(),
               'grad_norm': grad_norm.item(),
           }, global_step)
-    logging.info('%d) loss = %0.3f, grad_norm = %0.3f',
-                 global_step,
-                 loss.item(),
-                 grad_norm.item())
+    # logging.info('%d) loss = %0.3f, grad_norm = %0.3f',
+    #              global_step,
+    #              loss.item(),
+    #              grad_norm.item())
 
   return (optimizer_state, current_param_container, new_model_state)
 
