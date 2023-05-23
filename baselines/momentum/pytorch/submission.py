@@ -31,8 +31,7 @@ def init_optimizer_state(workload: spec.Workload,
               lr=hyperparameters.learning_rate,
               momentum=1.0 - hyperparameters.one_minus_beta1,
               weight_decay=hyperparameters.weight_decay,
-              nesterov=False,
-              foreach=False),
+              nesterov=False),
   }
 
   # Create learning rate schedule.
@@ -126,7 +125,7 @@ def update_params(workload: spec.Workload,
   optimizer_state['scheduler'].step()
 
   # Log training metrics - loss, grad_norm, batch_size.
-  if global_step <= 100 or global_step % 500 == 0:
+  if global_step <= 100000 or global_step % 500 == 0:
     with torch.no_grad():
       parameters = [p for p in current_model.parameters() if p.grad is not None]
       grad_norm = torch.norm(
