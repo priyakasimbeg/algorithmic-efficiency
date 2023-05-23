@@ -31,9 +31,8 @@ RUN cd algorithmic-efficiency && pip install -e '.[jax_gpu]' -f 'https://storage
 RUN cd algorithmic-efficiency && pip install -e '.[pytorch_gpu]' -f 'https://download.pytorch.org/whl/torch_stable.html'
 RUN cd algorithmic-efficiency && pip install -e '.[wandb]'
 
-RUN cd algorithmic-efficiency && git fetch origin && git pull
-RUN cd algorithmic-efficiency && git checkout timing_test_2
-RUN cd algorithmic-efficiency && git pull && git checkout 1f546
+RUN cd algorithmic-efficiency && git fetch origin && git pull && git checkout pytorch_momentum_debugging
+RUN cd algorithmic-efficiency && git pull && git checkout e984bc8fe
 
 # Todo: remove this, this is temporary for developing
 COPY scripts/startup.sh /algorithmic-efficiency/docker/scripts/startup.sh

@@ -33,8 +33,7 @@ def init_optimizer_state(workload: spec.Workload,
                      hyperparameters.beta2),
               eps=1e-8,
               weight_decay=hyperparameters.weight_decay,
-              foreach=False,
-              fused=False),
+              foreach=False),
   }
 
   def pytorch_cosine_warmup(step_hint: int, hyperparameters, optimizer):
