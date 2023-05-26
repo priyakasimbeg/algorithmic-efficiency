@@ -25,15 +25,14 @@ ARG GIT_URL=https://github.com/priyakasimbeg/algorithmic-efficiency.git
 # Install Algorithmic efficiency repo
 RUN echo "Setting up algorithmic_efficiency repo"
 RUN git clone $GIT_URL  
+RUN cd algorithmic-efficiency && git fetch && git checkout timing_upgrades
 
 RUN cd algorithmic-efficiency && pip install -e '.[full]'
 RUN cd algorithmic-efficiency && pip install -e '.[jax_gpu]' -f 'https://storage.googleapis.com/jax-releases/jax_cuda_releases.html'
 RUN cd algorithmic-efficiency && pip install -e '.[pytorch_cpu]' -f 'https://download.pytorch.org/whl/torch_stable.html'
 RUN cd algorithmic-efficiency && pip install -e '.[wandb]'
 
-RUN cd algorithmic-efficiency && git fetch origin && git pull
-RUN cd algorithmic-efficiency && git checkout timing_upgrades
-RUN cd algorithmic-efficiency && git pull && git checkout c1267fb5
+RUN cd algorithmic-efficiency && git pull && git checkout bf8eed
 
 # Todo: remove this, this is temporary for developing
 COPY scripts/startup.sh /algorithmic-efficiency/docker/scripts/startup.sh
