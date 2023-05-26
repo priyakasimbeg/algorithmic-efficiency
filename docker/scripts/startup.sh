@@ -49,12 +49,15 @@ then
 RSYNC_DATA='true' # Set default argument
 fi 
 
-if [[ ! -d ${DATA_DIR} ]] && [[${RSYNC_DATA} == 'true']]
+if [[ ! -d ${DATA_DIR} ]] 
 then
     mkdir -p ${DATA_DIR}
 fi 
-./google-cloud-sdk/bin/gsutil -m rsync -r ${DATA_BUCKET} ${DATA_DIR}
 
+if [[ ${RSYNC_DATA} == 'true' ]]
+then
+    ./google-cloud-sdk/bin/gsutil -m rsync -r ${DATA_BUCKET} ${DATA_DIR}
+fi 
 
 # Check GPU requirements and run experiment
 # python3 scripts/check_gpu.py
