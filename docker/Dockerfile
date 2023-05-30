@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 FROM nvidia/cuda:11.7.0-cudnn8-devel-ubuntu20.04
+=======
+FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu20.04
+>>>>>>> main
 
 # Installing machine packages
 RUN echo "Setting up machine"
