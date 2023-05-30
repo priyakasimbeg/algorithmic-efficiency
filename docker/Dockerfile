@@ -32,7 +32,7 @@ RUN cd algorithmic-efficiency && pip install -e '.[pytorch_gpu]' -f 'https://dow
 RUN cd algorithmic-efficiency && pip install -e '.[wandb]'
 
 RUN cd algorithmic-efficiency && git fetch origin && git pull && git checkout pytorch_momentum_debugging
-RUN cd algorithmic-efficiency && git pull && git checkout 319a95
+RUN cd algorithmic-efficiency && git pull && git checkout 7f52c9
 
 # Todo: remove this, this is temporary for developing
 COPY scripts/startup.sh /algorithmic-efficiency/docker/scripts/startup.sh
