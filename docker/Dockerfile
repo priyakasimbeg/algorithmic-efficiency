@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.7.0-cudnn8-devel-ubuntu20.04
+FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu20.04
 
 # Installing machine packages
 RUN echo "Setting up machine"
@@ -32,7 +32,7 @@ RUN cd algorithmic-efficiency && pip install -e '.[pytorch_gpu]' -f 'https://dow
 RUN cd algorithmic-efficiency && pip install -e '.[wandb]'
 
 RUN cd algorithmic-efficiency && git fetch origin && git pull
-RUN cd algorithmic-efficiency && git checkout timing_test_2
+RUN cd algorithmic-efficiency && git checkout timing
 RUN cd algorithmic-efficiency && git pull && git checkout c1267fb5
 
 # Todo: remove this, this is temporary for developing

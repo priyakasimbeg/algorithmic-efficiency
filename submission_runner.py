@@ -158,7 +158,8 @@ flags.DEFINE_boolean(
     'overwrite',
     False,
     'Whether to overwrite the experiment with identical experiment_dir and'
-    'experiment_name.')
+    'experiment_name.'
+)
 flags.DEFINE_boolean('save_checkpoints',
                      True,
                      'Whether or not to checkpoint the model at every eval.')
@@ -423,7 +424,6 @@ def train_once(
           logging.info(f'Time since start: {time_since_start:.2f}s, '
                        f'\tStep: {global_step}, \t{latest_eval_result}')
           eval_results.append((global_step, latest_eval_result))
-
           logging_start_time = time.time()
           if USE_PYTORCH_DDP:
             logging_start_time = sync_ddp_time(logging_start_time, DEVICE)
