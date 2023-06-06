@@ -47,7 +47,7 @@ from algorithmic_efficiency.pytorch_utils import sync_ddp_time
 tf.config.set_visible_devices([], 'GPU')
 
 # disable only for deepspeech if it works fine for other workloads.
-os.environ["XLA_FLAGS"] = "--xla_gpu_enable_triton_gemm=false"
+# os.environ["XLA_FLAGS"] = "--xla_gpu_enable_triton_gemm=false"
 
 # TODO(znado): make a nicer registry of workloads that lookup in.
 BASE_WORKLOADS_DIR = 'algorithmic_efficiency/workloads/'
