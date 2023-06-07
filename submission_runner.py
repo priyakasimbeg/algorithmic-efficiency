@@ -325,12 +325,8 @@ def train_once(
                                                  hyperparameters)
     workload.attach_metrics_logger(metrics_logger)
 
-  if USE_PYTORCH_DDP:
-    torch.cuda.synchronize()
+
   global_start_time = get_time()
-  if USE_PYTORCH_DDP:
-    # Make sure all processes start training at the same time.
-    global_start_time = sync_ddp_time(global_start_time, DEVICE)
   train_state['last_step_end_time'] = global_start_time
 
   logging.info('Starting training loop.')
@@ -406,6 +402,7 @@ def train_once(
           # Accumulate eval time
           train_state[
               'accumulated_eval_time'] += eval_end_time - eval_start_time
+          train_state['last_eval_time'] = eval_end_time
 
           # Add times to eval results for logging
           latest_eval_result['score'] = (
@@ -443,13 +440,12 @@ def train_once(
                   checkpoint_dir=log_dir,
                   save_intermediate_checkpoints=FLAGS
                   .save_intermediate_checkpoints)
+          
           logging_end_time = get_time()
 
-          train_state['last_eval_time'] = logging_end_time
           train_state['accumulated_logging_time'] += (
               logging_end_time - logging_start_time)
-          train_state['last_step_end_time'] = logging_end_time
-
+      
         except RuntimeError as e:
           logging.exception(f'Eval step {global_step} error.\n')
           if 'out of memory' in str(e):
@@ -457,6 +453,9 @@ def train_once(
                             f'{global_step}, error : {str(e)}.')
             if torch.cuda.is_available():
               torch.cuda.empty_cache()
+        
+        train_state['last_step_end_time'] = get_time()
+
 
   metrics = {'eval_results': eval_results, 'global_step': global_step}
 
@@ -576,6 +575,7 @@ def score_submission_on_workload(workload: spec.Workload,
                                      max_global_steps,
                                      tuning_dir_name,
                                      save_checkpoints=save_checkpoints,)
+      logging.info(f"Timing before loop {timing}")
       all_timings.append(timing)
       all_metrics.append(metrics)
     score = min(all_timings)
