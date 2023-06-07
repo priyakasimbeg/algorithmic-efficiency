@@ -575,7 +575,6 @@ def score_submission_on_workload(workload: spec.Workload,
                                      max_global_steps,
                                      tuning_dir_name,
                                      save_checkpoints=save_checkpoints,)
-      logging.info(f"Timing before loop {timing}")
       all_timings.append(timing)
       all_metrics.append(metrics)
     score = min(all_timings)
