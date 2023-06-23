@@ -182,7 +182,7 @@ jobs:
         pytest -vx tests/test_param_shapes.py
         pytest -vx tests/test_param_types.py
         pytest -vx tests/test_ssim.py
-  imagenet_jax:
+  imagenet_jax_self_hosted:
     runs-on: self-hosted
     steps:
     - uses: actions/checkout@v2
