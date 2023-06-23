@@ -182,3 +182,18 @@ jobs:
         pytest -vx tests/test_param_shapes.py
         pytest -vx tests/test_param_types.py
         pytest -vx tests/test_ssim.py
+  imagenet_jax:
+    runs-on: self-hosted
+    steps:
+    - uses: actions/checkout@v2
+    # - name: Set up Python 3.9
+    #   uses: actions/setup-python@v2
+    #   with:
+    #     python-version: 3.9
+    - name: Install Modules and Run
+      run: |
+        pip install .[jax_cpu]
+        pip install .[pytorch_cpu]
+        pip install .[full]
+        pip install -e .
+        python tests/reference_algorithm_tests.py --workload=imagenet_resnet     --framework=jax     --global_batch_size=2     --submission_path=reference_algorithms/target_setting_algorithms/jax_momentum.py     --tuning_search_space=reference_algorithms/target_setting_algorithms/imagenet_resnet/tuning_search_space.json
