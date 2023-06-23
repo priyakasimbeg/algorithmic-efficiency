@@ -190,10 +190,5 @@ jobs:
     #   uses: actions/setup-python@v2
     #   with:
     #     python-version: 3.9
-    - name: Install Modules and Run
-      run: |
-        pip install .[jax_cpu]
-        pip install .[pytorch_cpu]
-        pip install .[full]
-        pip install -e .
-        python tests/reference_algorithm_tests.py --workload=imagenet_resnet     --framework=jax     --global_batch_size=2     --submission_path=reference_algorithms/target_setting_algorithms/jax_momentum.py     --tuning_search_space=reference_algorithms/target_setting_algorithms/imagenet_resnet/tuning_search_space.json
+    - name: Run container
+      run: docker run -v /home/kasimbeg/data/:/data/ -v /home/kasimbeg/experiment_runs/:/experiment_runs -v /home/kasimbeg/experiment_runs/logs:/logs --gpus all --ipc=host us-central1-docker.pkg.dev/training-algorithms-external/mlcommons-docker-repo/base_image:timing -d imagenet -f jax -s baselines/adamw/jax/submission.py -w imagenet_resnet -t baselines/adamw/tuning_search_space.json -e test_today/adamw -m 20 -c False -o True -r false
