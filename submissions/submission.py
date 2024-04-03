@@ -364,7 +364,7 @@ def update_params(workload: spec.Workload,
         'model_params': jax_utils.unreplicate(current_param_container)
     }
     ckpt = flax_checkpoints.restore_checkpoint('/tmp/', target=checkpoint_state)
-    current_param_container = jax_utils.replicate(ckpt['model_params'])
+    current_param_container = jax_utils.replicate(jax_utils.replicate(ckpt['model_params']))
     optimizer_state['index'] += 1
     try:
       horizon_end_step, opt_init_fn, opt_update_fn = optimizer_state['optimizers'][
