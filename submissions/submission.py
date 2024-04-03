@@ -254,6 +254,7 @@ def init_optimizer_state(workload: spec.Workload,
                                      workload.param_shapes)
   _, opt_init_fn, _, = optimizer_state['optimizers'][0]
   optimizer_state['current_opt_state'] = opt_init_fn(params_zeros_like)
+  delete_pytree(params_zeros_like)
 
   # Save initial model weights
   checkpoint_state = {'model_params':  jax_utils.unreplicate(model_params)}
@@ -379,6 +380,7 @@ def update_params(workload: spec.Workload,
     delete_pytree(optimizer_state['current_opt_state'])
     optimizer_state['current_opt_state'] = opt_init_fn(params_zeros_like)
     current_opt_state = jax_utils.replicate(optimizer_state['current_opt_state'])
+    delete_pytree(params_zeros_like)
     logging.info('finished initializing state')
 
   # Check for label_smoothing and grad_clip
