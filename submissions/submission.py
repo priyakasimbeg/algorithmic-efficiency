@@ -358,7 +358,7 @@ def update_params(workload: spec.Workload,
     # Reset model weights
     logging.info('Moving to next opt point.')
     logging.info('Print live arrrays')
-    for arr in jax.live_arrays:
+    for arr in jax.live_arrays('gpu'):
       print(arr.shape)
     checkpoint_state = {
         'model_params': jax_utils.unreplicate(current_param_container)
