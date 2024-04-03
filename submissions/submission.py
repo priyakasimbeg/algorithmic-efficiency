@@ -79,7 +79,7 @@ def clear_device_memory():
 
 def print_live_arr_shapes():
   logging.info('Printing live arrays')
-  for arr in jax.live_arrays('gpu'):
+  for arr in jax.live_arrays('gpu').block_until:
     print(arr.shape)
 
 def delete_pytree(pytree):
@@ -268,7 +268,6 @@ def init_optimizer_state(workload: spec.Workload,
   _, opt_init_fn, _, = optimizer_state['optimizers'][0]
   optimizer_state['current_opt_state'] = opt_init_fn(params_zeros_like)
   delete_pytree(params_zeros_like)
-  print_live_arr_shapes()
 
   # Save initial model weights
   checkpoint_state = {'model_params':  jax_utils.unreplicate(model_params)}
@@ -363,7 +362,6 @@ def update_params(workload: spec.Workload,
 
     # Reset model weights
     logging.info('Moving to next opt point.')
-    print_live_arr_shapes()
     checkpoint_state = {
         'model_params': jax_utils.unreplicate(current_param_container)
     }
