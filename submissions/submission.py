@@ -359,6 +359,8 @@ def update_params(workload: spec.Workload,
 
   # If we have reached the end of the current opt point horizon progress the index
   if global_step == horizon_end_step:
+    gc.collect()
+
     # Reset model weights
     logging.info('Moving to next opt point.')
     print_live_arr_shapes()
@@ -377,8 +379,6 @@ def update_params(workload: spec.Workload,
     # Initialize new opt_state
     params_zeros_like = jax.tree_map(lambda s: jnp.zeros(s.shape_tuple),
                                   workload.param_shapes)
-    
-    # gc.collect()
     delete_pytree(optimizer_state['current_opt_state'])
     optimizer_state['current_opt_state'] = opt_init_fn(params_zeros_like)
     delete_pytree(params_zeros_like)
