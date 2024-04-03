@@ -326,6 +326,11 @@ def clear_device_memory():
   for arr in jax.live_arrays('gpu'):
     arr.delete()
 
+def print_live_arr_shapes():
+  logging.info('Printing live arrays')
+  for arr in jax.live_arrays('gpu'):
+    print(arr.shape)
+
 def delete_pytree(pytree):
   logging.info('Delete PyTree')
   jax.tree_util.tree_map(lambda x: x.delete(), pytree)
@@ -351,15 +356,12 @@ def update_params(workload: spec.Workload,
   # End step of the current point
   optimizer_state, _ = optimizer_state # maybe_restore_from_checkpoint call forces optimizer state to be tuple
   horizon_end_step, _, opt_update_fn = optimizer_state['optimizers'][optimizer_state['index']]
-  current_opt_state = jax_utils.replicate(optimizer_state['current_opt_state'])
 
   # If we have reached the end of the current opt point horizon progress the index
   if global_step == horizon_end_step:
     # Reset model weights
     logging.info('Moving to next opt point.')
-    logging.info('Print live arrrays')
-    for arr in jax.live_arrays('gpu'):
-      print(arr.shape)
+    print_live_arr_shapes()
     checkpoint_state = {
         'model_params': jax_utils.unreplicate(current_param_container)
     }
@@ -379,9 +381,11 @@ def update_params(workload: spec.Workload,
     # gc.collect()
     delete_pytree(optimizer_state['current_opt_state'])
     optimizer_state['current_opt_state'] = opt_init_fn(params_zeros_like)
-    current_opt_state = jax_utils.replicate(optimizer_state['current_opt_state'])
     delete_pytree(params_zeros_like)
     logging.info('finished initializing state')
+
+  # Get current opt state
+  current_opt_state = jax_utils.replicate(optimizer_state['current_opt_state'])
 
   # Check for label_smoothing and grad_clip
   hyperparameters = optimizer_state['hyperparameter_points'][optimizer_state['index']]
