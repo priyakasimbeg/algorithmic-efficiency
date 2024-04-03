@@ -357,11 +357,14 @@ def update_params(workload: spec.Workload,
   if global_step == horizon_end_step:
     # Reset model weights
     logging.info('Moving to next opt point.')
+    logging.info('Print live arrrays')
+    for arr in jax.live_arrays:
+      print(arr.shape)
     checkpoint_state = {
         'model_params': jax_utils.unreplicate(current_param_container)
     }
     ckpt = flax_checkpoints.restore_checkpoint('/tmp/', target=checkpoint_state)
-    current_param_container = ckpt['model_params']
+    current_param_container = jax_utils.replicate(ckpt['model_params'])
     optimizer_state['index'] += 1
     try:
       horizon_end_step, opt_init_fn, opt_update_fn = optimizer_state['optimizers'][
@@ -377,6 +380,7 @@ def update_params(workload: spec.Workload,
     delete_pytree(optimizer_state['current_opt_state'])
     optimizer_state['current_opt_state'] = opt_init_fn(params_zeros_like)
     current_opt_state = jax_utils.replicate(optimizer_state['current_opt_state'])
+    logging.info('finished initializing state')
 
   # Check for label_smoothing and grad_clip
   hyperparameters = optimizer_state['hyperparameter_points'][optimizer_state['index']]
@@ -412,7 +416,7 @@ def update_params(workload: spec.Workload,
         {
             'loss': loss[0],
             'grad_norm': grad_norm[0],
-            'lr': lr_fn(optimizer_state['current_opt_state'][-1].count)
+            'lr': lr_fn(optimizer_state['current_opt_state'][-1].count - 1)
         },
         global_step)
 
