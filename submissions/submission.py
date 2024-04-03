@@ -79,7 +79,7 @@ def clear_device_memory():
 
 def print_live_arr_shapes():
   logging.info('Printing live arrays')
-  for arr in jax.live_arrays('gpu').block_until:
+  for arr in jax.live_arrays('gpu'):
     print(arr.shape)
 
 def delete_pytree(pytree):
