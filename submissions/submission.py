@@ -25,6 +25,7 @@ import optax
 import math
 from flax.training import checkpoints as flax_checkpoints
 from typing import Sequence
+import gc
 
 from algorithmic_efficiency import spec
 
@@ -71,29 +72,6 @@ HPARAMS = [
                "training_horizon": 0.75
            }
            ]
-
-
-def replicate_checkpoint(latest: dict,
-                         pytree_keys: Sequence[str],
-                         replicate: bool = True) -> dict:
-  """Restores from the provided checkpoint.
-
-  Args:
-    latest: A dict representing the state of the
-      checkpoint we want to restore.
-    pytree_keys: A sequence of keys into `latest` that are pytrees, which will
-      be replicated if replicate=True.
-    replicate: If set, replicate the state across devices.
-
-  Returns:
-    A JAX pytree holding the arrays that need to be replicated/unreplicated.
-  """
-  pytree = {k: latest[k] for k in pytree_keys}
-  if replicate:
-    pytree = jax_utils.replicate(pytree)
-  extra_dict = {k: latest[k] for k in latest.keys() if k not in pytree_keys}
-  pytree.update(extra_dict)
-  return pytree
 
 
 # Forked from
@@ -344,6 +322,14 @@ def pmapped_train_step(workload,
   return new_optimizer_state, updated_params, new_model_state, loss, grad_norm
 
 
+def clear_device_memory():
+  for arr in jax.live_arrays('gpu'):
+    arr.delete()
+
+def delete_pytree(pytree):
+  jax.tree_util.tree_map(lambda x: x.delete(), pytree)
+
+
 def update_params(workload: spec.Workload,
                   current_param_container: spec.ParameterContainer,
                   current_params_types: spec.ParameterTypeTree,
@@ -385,6 +371,9 @@ def update_params(workload: spec.Workload,
     # Initialize new opt_state
     params_zeros_like = jax.tree_map(lambda s: jnp.zeros(s.shape_tuple),
                                   workload.param_shapes)
+    
+    # gc.collect()
+    delete_pytree(optimizer_state['current_opt_state'])
     optimizer_state['current_opt_state'] = opt_init_fn(params_zeros_like)
     current_opt_state = jax_utils.replicate(optimizer_state['current_opt_state'])
 
