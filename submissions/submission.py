@@ -327,6 +327,7 @@ def clear_device_memory():
     arr.delete()
 
 def delete_pytree(pytree):
+  logging.info('Delete PyTree')
   jax.tree_util.tree_map(lambda x: x.delete(), pytree)
 
 
