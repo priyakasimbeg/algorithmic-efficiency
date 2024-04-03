@@ -73,6 +73,18 @@ HPARAMS = [
            }
            ]
 
+def clear_device_memory():
+  for arr in jax.live_arrays('gpu'):
+    arr.delete()
+
+def print_live_arr_shapes():
+  logging.info('Printing live arrays')
+  for arr in jax.live_arrays('gpu'):
+    print(arr.shape)
+
+def delete_pytree(pytree):
+  logging.info('Delete PyTree')
+  jax.tree_util.tree_map(lambda x: x.delete(), pytree)
 
 # Forked from
 # github.com/google/init2winit/blob/master/init2winit/optimizer_lib/alias.py
@@ -216,6 +228,7 @@ def init_optimizer_state(workload: spec.Workload,
   optimizer_state = {'optimizers': []}
   optimizer_state['hyperparameter_points'] = HPARAMS
   optimizer_state['lr_fns'] = []
+  print_live_arr_shapes()
 
   def jax_cosine_warmup(step_hint: int, hyperparameters):
     # Create learning rate schedule.
@@ -255,6 +268,7 @@ def init_optimizer_state(workload: spec.Workload,
   _, opt_init_fn, _, = optimizer_state['optimizers'][0]
   optimizer_state['current_opt_state'] = opt_init_fn(params_zeros_like)
   delete_pytree(params_zeros_like)
+  print_live_arr_shapes()
 
   # Save initial model weights
   checkpoint_state = {'model_params':  jax_utils.unreplicate(model_params)}
@@ -320,20 +334,6 @@ def pmapped_train_step(workload,
                                                current_param_container)
   updated_params = optax.apply_updates(current_param_container, updates)
   return new_optimizer_state, updated_params, new_model_state, loss, grad_norm
-
-
-def clear_device_memory():
-  for arr in jax.live_arrays('gpu'):
-    arr.delete()
-
-def print_live_arr_shapes():
-  logging.info('Printing live arrays')
-  for arr in jax.live_arrays('gpu'):
-    print(arr.shape)
-
-def delete_pytree(pytree):
-  logging.info('Delete PyTree')
-  jax.tree_util.tree_map(lambda x: x.delete(), pytree)
 
 
 def update_params(workload: spec.Workload,
