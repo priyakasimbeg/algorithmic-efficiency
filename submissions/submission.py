@@ -250,10 +250,10 @@ def init_optimizer_state(workload: spec.Workload,
   print('initializing optimizer state')
 
   optimizer_state = {}
-  optimizer_state['hyperparameter_points'] = HPARAMS
   optimizer_state = {'optimizers': []}
   optimizer_state['lr_fns'] = []
   optimizer_state['current_hparam_index'] = 0
+  optimizer_state['hyperparameter_points'] = HPARAMS
 
   # Create optimizer + LR schedule.
   end_step = 0
