@@ -31,47 +31,39 @@ from algorithmic_efficiency import spec
 
 _GRAD_CLIP_EPS = 1e-6
 
-
-# Make sure the traning horizons for all points add up to 3
-# since they are w.r.t. the external tuning stephint
+# Note that training_horizons are w.r.t step_hint for external_tunign ruleset
 HPARAMS = [
-  {
-    "dropout_rate": 0.1,
-    "learning_rate": 0.0014271957958295392,
-    "one_minus_beta1": 0.03380478752,
-    "beta2": 0.9957304053273589,
-    "weight_decay": 0.09153141484048229,
-    "warmup_factor": 0.01,
-    "label_smoothing": 0.1,
-    # Debug criteo
-    "training_horizon": 0.0006,
-    # "training_horizon": 1,
-},
-           {
-               "dropout_rate": 0.0,
-               "learning_rate": 0.001768509931943289,
-               "one_minus_beta1": 0.05850208614,
-               "beta2": 0.9768053375036079,
-               "weight_decay": 0.0279513959224539,
-               "warmup_factor": 0.02,
-               "label_smoothing": 0.2,
-               "training_horizon": 1,
-               # Debug criteo
-              #  "training_horizon": 0.0006,
-               "training_horizon": 1,
-           },
-           {
-               "dropout_rate": 0.1,
-               "learning_rate": 0.0023792566965593815,
-               "one_minus_beta1": 0.01990335215,
-               "beta2": 0.9632738717172477,
-               "weight_decay": 0.3417568278549717,
-               "warmup_factor": 0.01,
-               # Debug criteo
-              #  "training_horizon": 0.0006,
-               "training_horizon": 0.75
-           }
-           ]
+    {
+        "dropout_rate": 0.1,  # currently unused
+        "learning_rate": 0.0014271957958295392,
+        "one_minus_beta1": 0.03380478752,
+        "beta2": 0.9957304053273589,
+        "weight_decay": 0.09153141484048229,
+        "warmup_factor": 0.01,
+        "label_smoothing": 0.1,
+        "training_horizon": 1,
+    },
+    {
+        "dropout_rate": 0.0,  # currently unused
+        "learning_rate": 0.001768509931943289,
+        "one_minus_beta1": 0.05850208614,
+        "beta2": 0.9768053375036079,
+        "weight_decay": 0.0279513959224539,
+        "warmup_factor": 0.02,
+        "label_smoothing": 0.2,
+        "training_horizon": 1,
+        "training_horizon": 1,
+    },
+    {
+        "dropout_rate": 0.1,  # currently unused
+        "learning_rate": 0.0023792566965593815,
+        "one_minus_beta1": 0.01990335215,
+        "beta2": 0.9632738717172477,
+        "weight_decay": 0.3417568278549717,
+        "warmup_factor": 0.01,
+        "training_horizon": 0.75
+    }
+]
 
 
 # Forked from
@@ -244,14 +236,13 @@ def init_optimizer_state(workload: spec.Workload,
         b2=hyperparameters['beta2'],
         eps=1e-8,
         weight_decay=hyperparameters['weight_decay'])
-    optimizer_state['optimizers'].append(
-        (end_step, opt_init_fn, opt_update_fn))
+    optimizer_state['optimizers'].append((end_step, opt_init_fn, opt_update_fn))
     optimizer_state['lr_fns'].append(lr_schedule_fn)
     optimizer_state['index'] = 0
 
   # Initialize first optstate
   params_zeros_like = jax.tree_map(lambda s: jnp.zeros(s.shape_tuple),
-                                     workload.param_shapes)
+                                   workload.param_shapes)
   _, opt_init_fn, _, = optimizer_state['optimizers'][0]
   optimizer_state['current_opt_state'] = opt_init_fn(params_zeros_like)
 
@@ -326,6 +317,7 @@ def clear_device_memory():
   for arr in jax.live_arrays('gpu'):
     arr.delete()
 
+
 def delete_pytree(pytree):
   logging.info('Delete PyTree')
   jax.tree_util.tree_map(lambda x: x.delete(), pytree)
@@ -350,40 +342,44 @@ def update_params(workload: spec.Workload,
 
   # End step of the current point
   optimizer_state, _ = optimizer_state # maybe_restore_from_checkpoint call forces optimizer state to be tuple
-  horizon_end_step, _, opt_update_fn = optimizer_state['optimizers'][optimizer_state['index']]
   current_opt_state = jax_utils.replicate(optimizer_state['current_opt_state'])
 
   # If we have reached the end of the current opt point horizon progress the index
   if global_step == horizon_end_step:
-    # Reset model weights
     logging.info('Moving to next opt point.')
-    logging.info('Print live arrrays')
-    for arr in jax.live_arrays('gpu'):
-      print(arr.shape)
-    checkpoint_state = {
-        'model_params': jax_utils.unreplicate(current_param_container)
-    }
-    ckpt = flax_checkpoints.restore_checkpoint('/tmp/', target=checkpoint_state)
+
+    # Reset model weights
+    ckpt = flax_checkpoints.restore_checkpoint(
+        '/tmp/',
+        target={'model_params': jax_utils.unreplicate(current_param_container)})
     current_param_container = jax_utils.replicate(ckpt['model_params'])
+
+    # Move to next state
     optimizer_state['index'] += 1
     try:
       horizon_end_step, opt_init_fn, opt_update_fn = optimizer_state['optimizers'][
           optimizer_state['index']]
     except IndexError:
       raise spec.TrainingCompleteError
-    
+
     # Initialize new opt_state
-    params_zeros_like = jax.tree_map(lambda s: jnp.zeros(s.shape_tuple),
-                                  workload.param_shapes)
-    
-    # gc.collect()
+    gc.collect()
     delete_pytree(optimizer_state['current_opt_state'])
+
+    params_zeros_like = jax.tree_map(lambda s: jnp.zeros(s.shape_tuple),
+                                     workload.param_shapes)
     optimizer_state['current_opt_state'] = opt_init_fn(params_zeros_like)
-    current_opt_state = jax_utils.replicate(optimizer_state['current_opt_state'])
-    logging.info('finished initializing state')
+    current_opt_state = jax_utils.replicate(
+        optimizer_state['current_opt_state'])
+    
+    logging.info('Finished initializing next opt state.')
+
+  # Get update fn
+  horizon_end_step, opt_init_fn, opt_update_fn = optimizer_state['optimizers'][optimizer_state['index']]
 
   # Check for label_smoothing and grad_clip
-  hyperparameters = optimizer_state['hyperparameter_points'][optimizer_state['index']]
+  hyperparameters = optimizer_state['hyperparameter_points'][
+      optimizer_state['index']]
 
   if hasattr(hyperparameters, 'label_smoothing'):
     label_smoothing = hyperparameters['label_smoothing']
@@ -407,7 +403,8 @@ def update_params(workload: spec.Workload,
                                label_smoothing)
   new_current_opt_state, new_params, new_model_state, loss, grad_norm = outputs
 
-  optimizer_state['current_opt_state'] = jax_utils.unreplicate(new_current_opt_state)
+  optimizer_state['current_opt_state'] = jax_utils.unreplicate(
+      new_current_opt_state)
 
   # Log loss, grad_norm.
   if global_step % 100 == 0 and workload.metrics_logger is not None:
