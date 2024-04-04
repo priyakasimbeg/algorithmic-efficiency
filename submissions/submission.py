@@ -21,6 +21,11 @@ import jax
 from jax import lax
 import jax.numpy as jnp
 import optax
+import math
+from flax.training import checkpoints as flax_checkpoints
+from typing import Sequence
+import gc
+
 
 from algorithmic_efficiency import spec
 
@@ -348,8 +353,9 @@ def base_update_params(workload: spec.Workload,
         }, global_step)
   return (new_optimizer_state, opt_update_fn), new_params, new_model_state
 
+
 def _get_segment(t, left_bounds):
-  return np.nonzero(t >= left_bounds)[0].max()
+  return int(np.nonzero(t >= left_bounds)[0].max())
 
 
 def update_params(workload: spec.Workload,
@@ -375,12 +381,20 @@ def update_params(workload: spec.Workload,
 
   if local_step == 0:
     # TODO: reset model params to their initial values
+    ckpt = flax_checkpoints.restore_checkpoint('/tmp/', target= {
+        'model_params': jax_utils.unreplicate(current_param_container)
+    })
+    current_param_container = jax_utils.replicate(ckpt['model_params'])
+
     # TODO: load the current hparam point
+    hparams = HPARAMS[segment]
+
     # TODO: set the dropout (if relevant for this workload)
+    
     # TODO: fold in global step to RNG?
     optimizer_state = base_init_optimizer_state(
       workload=workload,
-      model_params=model_params,
+      model_params=current_param_container,
       model_state=model_state,
       hyperparameters=HPARAMS[segment],
       rng=rng)
@@ -411,6 +425,7 @@ def get_batch_size(workload_name):
     return 32
   elif workload_name == 'imagenet_resnet':
     return 1024
+  # Todo workload variants for imagenet_resnet
   elif workload_name == 'imagenet_vit':
     return 1024
   elif workload_name == 'librispeech_conformer':
