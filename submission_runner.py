@@ -450,18 +450,18 @@ def train_once(
         #           save_intermediate_checkpoints=FLAGS
         #           .save_intermediate_checkpoints)
 
-          logging_end_time = get_time()
-          train_state['accumulated_logging_time'] += (
-              logging_end_time - logging_start_time)
+        #   logging_end_time = get_time()
+        #   train_state['accumulated_logging_time'] += (
+        #       logging_end_time - logging_start_time)
 
-          _reset_cuda_mem()
+        #   _reset_cuda_mem()
 
-        except RuntimeError as e:
-          logging.exception(f'Eval step {global_step} error.\n')
-          if 'out of memory' in str(e):
-            logging.warning('Error: GPU out of memory during eval during step '
-                            f'{global_step}, error : {str(e)}.')
-            _reset_cuda_mem()
+        # except RuntimeError as e:
+        #   logging.exception(f'Eval step {global_step} error.\n')
+        #   if 'out of memory' in str(e):
+        #     logging.warning('Error: GPU out of memory during eval during step '
+        #                     f'{global_step}, error : {str(e)}.')
+        #     _reset_cuda_mem()
 
     train_state['last_step_end_time'] = get_time()
 
