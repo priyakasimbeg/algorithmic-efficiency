@@ -65,28 +65,6 @@ HPARAMS = [{
            }]
 
 
-def replicate_checkpoint(latest: dict,
-                         pytree_keys: Sequence[str],
-                         replicate: bool = True) -> dict:
-  """Restores from the provided checkpoint.
-
-  Args:
-    latest: A dict representing the state of the
-      checkpoint we want to restore.
-    pytree_keys: A sequence of keys into `latest` that are pytrees, which will
-      be replicated if replicate=True.
-    replicate: If set, replicate the state across devices.
-
-  Returns:
-    A JAX pytree holding the arrays that need to be replicated/unreplicated.
-  """
-  pytree = {k: latest[k] for k in pytree_keys}
-  if replicate:
-    pytree = jax_utils.replicate(pytree)
-  extra_dict = {k: latest[k] for k in latest.keys() if k not in pytree_keys}
-  pytree.update(extra_dict)
-  return pytree
-
 
 # Forked from
 # github.com/google/init2winit/blob/master/init2winit/optimizer_lib/alias.py
@@ -272,11 +250,11 @@ def init_optimizer_state(workload: spec.Workload,
     optimizer_state['index'] = 0
 
   # Save initial model weights
-  model_params = jax.device_get(model_params)
-  checkpoint_state = {'model_params': model_params}
+  checkpoint_state = {'model_params': jax_utils.unreplicate(model_params)}
   flax_checkpoints.save_checkpoint(
       '/tmp', target=checkpoint_state, step=0, overwrite=True, keep=1)
 
+  
   return optimizer_state, None
 
 
@@ -362,7 +340,6 @@ def update_params(workload: spec.Workload,
   # If we have reached the end of the current opt point horizon progress the index
   if global_step == horizon_end_step:
     # Reset model weights
-    logging.info('Moving to next optimizer!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
     checkpoint_state = {
         'model_params': jax_utils.unreplicate(current_param_container)
     }
