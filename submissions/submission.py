@@ -343,6 +343,8 @@ def update_params(workload: spec.Workload,
   # End step of the current point
   optimizer_state, _ = optimizer_state # maybe_restore_from_checkpoint call forces optimizer state to be tuple
   current_opt_state = jax_utils.replicate(optimizer_state['current_opt_state'])
+  horizon_end_step, _ , _ = optimizer_state['optimizers'][
+          optimizer_state['index']]
 
   # If we have reached the end of the current opt point horizon progress the index
   if global_step == horizon_end_step:
