@@ -261,13 +261,13 @@ def init_optimizer_state(workload: spec.Workload,
     
     def zeros_like_params(params):
       return jax.tree_map(lambda x: jnp.zeros(x[0].shape), params)
-
     jitted_zeros_like = jax.jit(zeros_like_params, device=jax.devices('cpu')[0])  
     params_zeros_like = jitted_zeros_like(model_params)
     
     sub_optimizer_state = opt_init_fn(params_zeros_like)
     optimizer_state['optimizers'].append(
-        (end_step, jax_utils.replicate(sub_optimizer_state), opt_update_fn))
+        (end_step, sub_optimizer_state, opt_update_fn))
+
     optimizer_state['lr_fns'].append(lr_schedule_fn)
     optimizer_state['index'] = 0
 
@@ -392,7 +392,7 @@ def update_params(workload: spec.Workload,
   outputs = pmapped_train_step(workload,
                                opt_update_fn,
                                model_state,
-                               sub_optimizer_state,
+                               jax_utils.replicate(sub_optimizer_state),
                                current_param_container,
                                batch,
                                per_device_rngs,
