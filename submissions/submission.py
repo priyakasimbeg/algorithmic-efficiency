@@ -281,7 +281,7 @@ def init_optimizer_state(workload: spec.Workload,
   delete_pytree(params_zeros_like)
 
   # Save initial model weights
-  checkpoint_state = {'model_params':  jax_utils.unreplicate(model_params)}
+  checkpoint_state = {'params':  jax_utils.unreplicate(model_params)}
   flax_checkpoints.save_checkpoint(
       '/tmp', target=checkpoint_state, step=0, overwrite=True, keep=1)
 
