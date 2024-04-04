@@ -1,6 +1,7 @@
 """Submission file for an NAdamW optimizer with warmup+cosine LR in Jax."""
 
 import functools
+import flax
 
 # isort: off
 # We have to turn off isort here to resolve a conflict between isort and yapf.
@@ -25,16 +26,17 @@ import optax
 import math
 from flax.training import checkpoints as flax_checkpoints
 from typing import Sequence
+import gc
 
 from algorithmic_efficiency import spec
 
 _GRAD_CLIP_EPS = 1e-6
 
-TRAINING_HORIZON_FRACTION = 0.75
 
 # Make sure the traning horizons for all points add up to 3
 # since they are w.r.t. the external tuning stephint
-HPARAMS = [{
+HPARAMS = [
+  {
     "dropout_rate": 0.1,
     "learning_rate": 0.0014271957958295392,
     "one_minus_beta1": 0.03380478752,
@@ -42,7 +44,9 @@ HPARAMS = [{
     "weight_decay": 0.09153141484048229,
     "warmup_factor": 0.01,
     "label_smoothing": 0.1,
-    "training_horizon": 1,
+    # Debug criteo
+    "training_horizon": 0.0006,
+    # "training_horizon": 1,
 },
            {
                "dropout_rate": 0.0,
@@ -53,6 +57,9 @@ HPARAMS = [{
                "warmup_factor": 0.02,
                "label_smoothing": 0.2,
                "training_horizon": 1,
+               # Debug criteo
+              #  "training_horizon": 0.0006,
+               "training_horizon": 1,
            },
            {
                "dropout_rate": 0.1,
@@ -61,9 +68,11 @@ HPARAMS = [{
                "beta2": 0.9632738717172477,
                "weight_decay": 0.3417568278549717,
                "warmup_factor": 0.01,
+               # Debug criteo
+              #  "training_horizon": 0.0006,
                "training_horizon": 0.75
-           }]
-
+           }
+           ]
 
 
 # Forked from
@@ -150,8 +159,14 @@ def scale_by_nadam(b1: float = 0.9,
   raise_power = jnp.sqrt if power == 0.5 else lambda x: jnp.power(x, power)
 
   def init_fn(params):
-    mu = jax.tree_map(jnp.zeros_like, params)  # First moment
-    nu = jax.tree_map(jnp.zeros_like, params)  # Second moment
+    def zeros_like_params(params):
+      return jax.tree_map(jnp.zeros_like, params)
+    
+    jitted_zeros_like = jax.jit(zeros_like_params)
+    
+    mu = jitted_zeros_like(params)  # First moment
+    nu = jitted_zeros_like(params)  # Second moment
+
     return ScaleByAdamState(count=jnp.zeros([], jnp.int32), mu=mu, nu=nu)
 
   def update_fn(updates, state, params=None):
@@ -194,22 +209,7 @@ def scale_by_learning_rate(learning_rate, flip_sign=True):
     return optax.scale_by_schedule(lambda count: m * learning_rate(count))
   return optax.scale(m * learning_rate)
 
-
-def init_optimizer_state(workload: spec.Workload,
-                         model_params: spec.ParameterContainer,
-                         model_state: spec.ModelAuxiliaryState,
-                         hyperparameters: spec.Hyperparameters,
-                         rng: spec.RandomState) -> spec.OptimizerState:
-  """Creates a NAdamW optimizer and a learning rate schedule."""
-  del model_state
-  del rng
-  del hyperparameters
-
-  optimizer_state = {'optimizers': []}
-  optimizer_state['hyperparameters'] = HPARAMS
-  optimizer_state['lr_fns'] = []
-
-  def jax_cosine_warmup(step_hint: int, hyperparameters):
+def jax_cosine_warmup(step_hint: int, hyperparameters):
     # Create learning rate schedule.
     warmup_steps = int(hyperparameters['warmup_factor'] * step_hint)
     warmup_fn = optax.linear_schedule(
@@ -223,34 +223,64 @@ def init_optimizer_state(workload: spec.Workload,
         schedules=[warmup_fn, cosine_fn], boundaries=[warmup_steps])
     return schedule_fn
 
+def init_optimizer_state(workload: spec.Workload,
+                         model_params: spec.ParameterContainer,
+                         model_state: spec.ModelAuxiliaryState,
+                         hyperparameters: spec.Hyperparameters,
+                         rng: spec.RandomState) -> spec.OptimizerState:
+  """Creates a NAdamW optimizer and a learning rate schedule."""
+  del model_state
+  del rng
+  del hyperparameters
+
+  print('initializing optimizer state')
+
+  optimizer_state = {}
+  optimizer_state['hyperparameter_points'] = HPARAMS
+  optimizer_state['objects'] = []
+  optimizer_state['state'] = None
+  optimizer_state['current_hparam_index'] = 0
+
   # Create optimizer + LR schedule.
-  end_step = 0
-  for hyperparameters in optimizer_state['hyperparameters']:
-    horizon_steps = math.ceil(hyperparameters['training_horizon'] *
-                              workload.step_hint)
-    end_step = end_step + horizon_steps + 1
-    lr_schedule_fn = jax_cosine_warmup(horizon_steps, hyperparameters)
+
+  for hparam in optimizer_state['hyperparameter_points']:
+    # horizon_steps = math.ceil(hparam['training_horizon'] *
+    #                           workload.step_hint)
+    horizon_steps = 10
+                                  
+    print('horizon_steps = ', horizon_steps)
+    lr_schedule_fn = jax_cosine_warmup(horizon_steps, hparam)
+
     opt_init_fn, opt_update_fn = nadamw(
         learning_rate=lr_schedule_fn,
-        b1=1.0 - hyperparameters['one_minus_beta1'],
-        b2=hyperparameters['beta2'],
+        b1=1.0 - hparam['one_minus_beta1'],
+        b2=hparam['beta2'],
         eps=1e-8,
-        weight_decay=hyperparameters['weight_decay'])
-    
-    def zeros_like_params(params):
-      return jax.tree_map(lambda x: jnp.zeros(x[0].shape), params)
-    jitted_zeros_like = jax.jit(zeros_like_params, device=jax.devices('cpu')[0])  
-    params_zeros_like = jitted_zeros_like(model_params)
-    
-    sub_optimizer_state = opt_init_fn(params_zeros_like)
-    optimizer_state['optimizers'].append(
-        (end_step, sub_optimizer_state, opt_update_fn))
+        weight_decay=hparam['weight_decay'])
 
-    optimizer_state['lr_fns'].append(lr_schedule_fn)
-    optimizer_state['index'] = 0
+
+    optimizer_state['objects'].append({
+        'duration': horizon_steps,
+        'lr_fn': lr_schedule_fn,
+        'opt_init_fn': opt_init_fn,
+        'opt_update_fn': opt_update_fn,
+    })
+
+
+
+  def zeros_like_params(params):
+    return jax.tree_map(lambda x: jnp.zeros(x[0].shape), params)
+
+  jitted_zeros_like = jax.jit(zeros_like_params, device=jax.devices('cpu')[0])  
+  params_zeros_like = jitted_zeros_like(model_params)
+  
+  optimizer_state['state'] = jax_utils.replicate(
+    optimizer_state['objects'][0]['opt_init_fn'](params_zeros_like)
+  )
 
   # Save initial model weights
-  checkpoint_state = {'model_params': jax_utils.unreplicate(model_params)}
+  print('Saving initial params to ckpt.')
+  checkpoint_state = {'params':  jax_utils.unreplicate(model_params)}
   flax_checkpoints.save_checkpoint(
       '/tmp', target=checkpoint_state, step=0, overwrite=True, keep=1)
 
@@ -261,7 +291,7 @@ def init_optimizer_state(workload: spec.Workload,
 @functools.partial(
     jax.pmap,
     axis_name='batch',
-    in_axes=(None, None, 0, 0, 0, 0, 0, None, None),
+    in_axes=(None, None, 0, 0, 0, 0, 0, None),
     static_broadcasted_argnums=(0, 1),
     # todo add donate argnum 3
     donate_argnums=(2, 3, 4))
@@ -272,7 +302,6 @@ def pmapped_train_step(workload,
                        current_param_container,
                        batch,
                        rng,
-                       grad_clip,
                        label_smoothing):
 
   def _loss_fn(params):
@@ -305,16 +334,30 @@ def pmapped_train_step(workload,
   grad_norm = jnp.sqrt(
       sum(jnp.sum(g**2) for g in jax.tree_util.tree_leaves(grad)))
 
-  if grad_clip is not None:
-    grad_scaling_factor = grad_clip / (grad_norm + _GRAD_CLIP_EPS)
-    grad_scaling_factor = jax.lax.clamp(min=0.0, x=grad_scaling_factor, max=1.0)
-    grad = jax.tree_map(lambda x: x * grad_scaling_factor, grad)
-
   updates, new_optimizer_state = opt_update_fn(grad, optimizer_state,
                                                current_param_container)
   updated_params = optax.apply_updates(current_param_container, updates)
   return new_optimizer_state, updated_params, new_model_state, loss, grad_norm
 
+
+def clear_device_memory():
+  for arr in jax.live_arrays('gpu'):
+    arr.delete()
+
+def delete_pytree(pytree):
+  logging.info('Delete PyTree')
+  jax.tree_util.tree_map(lambda x: x.delete(), pytree)
+
+
+def is_special_step(global_step, objects):
+    for object in objects:
+        if object['duration'] == global_step:
+            return True
+
+    return False
+
+def delete_pytree(tree):
+    jax.tree_util.tree_map(lambda arr: arr.delete(), tree)
 
 def update_params(workload: spec.Workload,
                   current_param_container: spec.ParameterContainer,
@@ -333,65 +376,88 @@ def update_params(workload: spec.Workload,
   del eval_results
   del hyperparameters
 
-  # End step of the current point
-  optimizer_state, _ = optimizer_state
-  horizon_end_step, sub_optimizer_state, opt_update_fn = optimizer_state['optimizers'][optimizer_state['index']]
+  (optimizer_state_dict, _) = optimizer_state
 
-  # If we have reached the end of the current opt point horizon progress the index
-  if global_step == horizon_end_step:
-    # Reset model weights
-    checkpoint_state = {
-        'model_params': jax_utils.unreplicate(current_param_container)
-    }
-    ckpt = flax_checkpoints.restore_checkpoint('/tmp/', target=checkpoint_state)
-    current_param_container = ckpt['model_params']
-    optimizer_state['index'] += 1
-    try:
-      horizon_end_step, sub_optimizer_state, opt_update_fn = optimizer_state['optimizers'][
-          optimizer_state['index']]
-    except IndexError:
-      raise spec.TrainingCompleteError
+  if is_special_step(global_step, optimizer_state_dict['objects']):
+    logging.info('Moving to next opt point.')
+    logging.info('Print live arrrays')
 
-  # Check for label_smoothing and grad_clip
-  hyperparameters = optimizer_state['hyperparameters'][optimizer_state['index']]
+    for arr in jax.live_arrays('gpu'):
+      print(arr.shape)
+
+    # Reset optimizer state and restart training.
+    optimizer_state_dict['current_hparam_index'] = optimizer_state_dict['current_hparam_index'] + 1
+
+    def zeros_like_params(params):
+        return jax.tree_map(lambda x: jnp.zeros(x[0].shape), params)
+
+    jitted_zeros_like = jax.jit(zeros_like_params, device=jax.devices('cpu')[0])
+    params_zeros_like = jitted_zeros_like(current_param_container)
+
+    index = optimizer_state_dict['current_hparam_index']
+
+    delete_pytree(optimizer_state_dict['state'])
+    # delete_pytree(current_param_container)
+
+    optimizer_state_dict['state'] = jax_utils.replicate(optimizer_state_dict['objects'][index]['opt_init_fn'](params_zeros_like))
+    print(current_param_container.keys())
+    
+    current_param_container = jax_utils.replicate(
+        flax.core.frozen_dict.freeze(
+            flax_checkpoints.restore_checkpoint('/tmp/', target=None)['params']))
+
+    print(current_param_container.keys())
+
+
+  current_hparam_index =  optimizer_state_dict['current_hparam_index']
+  current_optimizer = optimizer_state_dict['objects'][current_hparam_index]
+
+  current_opt_update_fn = current_optimizer['opt_update_fn']
+
+  hyperparameters = optimizer_state_dict['hyperparameter_points'][current_hparam_index]
 
   if hasattr(hyperparameters, 'label_smoothing'):
     label_smoothing = hyperparameters['label_smoothing']
   else:
     label_smoothing = 0.0
-  if hasattr(hyperparameters, 'grad_clip'):
-    grad_clip = hyperparameters['grad_clip']
-  else:
-    grad_clip = None
 
   # Pmapped update step
   per_device_rngs = jax.random.split(rng, jax.local_device_count())
+
+  current_optimizer_state = optimizer_state_dict['state']
+
   outputs = pmapped_train_step(workload,
-                               opt_update_fn,
+                               current_opt_update_fn,
                                model_state,
-                               jax_utils.replicate(sub_optimizer_state),
+                               current_optimizer_state,
                                current_param_container,
                                batch,
                                per_device_rngs,
-                               grad_clip,
                                label_smoothing)
-  new_sub_optimizer_state, new_params, new_model_state, loss, grad_norm = outputs
+  current_optimizer_state, current_param_container, new_model_state, loss, grad_norm = outputs
 
-  optimizer_state['optimizers'][optimizer_state['index']] = (
-      horizon_end_step, new_sub_optimizer_state, opt_update_fn)
+  optimizer_state_dict['state'] = current_optimizer_state
 
   # Log loss, grad_norm.
-  if global_step % 100 == 0 and workload.metrics_logger is not None:
-    # lr_fn = optimizer_state['lr_fns'][optimizer_state['index']]
+  if global_step < 100 and workload.metrics_logger is not None:
+    lr_fn = current_optimizer['lr_fn']
+
+    if current_hparam_index == 0:
+        offset = 0
+    else:
+        offset = optimizer_state_dict['objects'][current_hparam_index - 1]['duration']
+
     workload.metrics_logger.append_scalar_metrics(
         {
             'loss': loss[0],
             'grad_norm': grad_norm[0],
-            # 'lr': lr_fn(sub_optimizer_state[-1].count)[0]
+            'lr': lr_fn(global_step - offset)
         },
         global_step)
 
-  return (optimizer_state, None), new_params, new_model_state
+  # The maybe_restore_from_checkpoint call in submission_runner expects a tuple for
+  # optimizer state.
+  return (optimizer_state_dict, None), current_param_container, new_model_state
 
 
 def get_batch_size(workload_name):
