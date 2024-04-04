@@ -259,8 +259,12 @@ def init_optimizer_state(workload: spec.Workload,
         eps=1e-8,
         weight_decay=hyperparameters['weight_decay'])
     
-    params_zeros_like = jax.tree_map(lambda s: jnp.zeros(s.shape_tuple),
-                                     workload.param_shapes)
+    def zeros_like_params(params):
+      return jax.tree_map(lambda x: jnp.zeros(x[0].shape), params)
+
+    jitted_zeros_like = jax.jit(zeros_like_params, device=jax.devices('cpu')[0])  
+    params_zeros_like = jitted_zeros_like(model_params)
+    
     sub_optimizer_state = opt_init_fn(params_zeros_like)
     optimizer_state['optimizers'].append(
         (end_step, jax_utils.replicate(sub_optimizer_state), opt_update_fn))
