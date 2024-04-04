@@ -442,7 +442,7 @@ def update_params(workload: spec.Workload,
                                current_param_container,
                                batch,
                                per_device_rngs,
-                               grad_clip
+                               grad_clip,
                                label_smoothing)
   current_optimizer_state, current_param_container, new_model_state, loss, grad_norm = outputs
 
