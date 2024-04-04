@@ -41,7 +41,7 @@ HPARAMS = [
         "weight_decay": 0.09153141484048229,
         "warmup_factor": 0.01,
         "label_smoothing": 0.1,
-        "training_horizon": 0.005,
+        "training_horizon": 0.05,
     },
     {
         "dropout_rate": 0.0,  # currently unused
