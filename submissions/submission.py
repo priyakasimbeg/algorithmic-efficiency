@@ -244,8 +244,9 @@ def init_optimizer_state(workload: spec.Workload,
   # Create optimizer + LR schedule.
   end_step = 0
   for hparam in optimizer_state['hparam_points']:
-    horizon_steps = math.ceil(hparam['training_horizon'] *
-                              workload.step_hint)
+    # horizon_steps = math.ceil(hparam['training_horizon'] *
+    #                           workload.step_hint)
+    horizon_steps = 5
     end_step = end_step + horizon_steps
     print('horizon_steps = ', horizon_steps)
     lr_schedule_fn = jax_cosine_warmup(horizon_steps, hparam)
@@ -263,6 +264,7 @@ def init_optimizer_state(workload: spec.Workload,
         'lr_fn': lr_schedule_fn,
         'opt_init_fn': opt_init_fn,
         'opt_update_fn': opt_update_fn,
+        'end_step': end_step,
     })
 
 
@@ -356,9 +358,8 @@ def delete_pytree(pytree):
 
 def is_special_step(global_step, objects):
     for object in objects:
-        if object['duration'] == global_step:
+        if object['end_step'] == global_step:
             return True
-
     return False
 
 def delete_pytree(tree):
