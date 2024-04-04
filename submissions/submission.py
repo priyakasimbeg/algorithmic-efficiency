@@ -41,7 +41,7 @@ HPARAMS = [
         "weight_decay": 0.09153141484048229,
         "warmup_factor": 0.01,
         "label_smoothing": 0.1,
-        "training_horizon": 0.0055,
+        "training_horizon": 1.0,
     },
     {
         "dropout_rate": 0.0,  # currently unused
@@ -260,7 +260,6 @@ def init_optimizer_state(workload: spec.Workload,
     axis_name='batch',
     in_axes=(None, None, 0, 0, 0, 0, 0, None, None),
     static_broadcasted_argnums=(0, 1),
-    # todo add donate argnum 3
     donate_argnums=(2, 3, 4))
 def pmapped_train_step(workload,
                        opt_update_fn,
@@ -409,7 +408,7 @@ def update_params(workload: spec.Workload,
       new_current_opt_state)
 
   # Log loss, grad_norm.
-  if global_step % 1 == 0 and workload.metrics_logger is not None:
+  if global_step % 100 == 0 and workload.metrics_logger is not None:
     lr_fn = optimizer_state['lr_fns'][optimizer_state['index']]
     workload.metrics_logger.append_scalar_metrics(
         {
@@ -432,6 +431,11 @@ def get_batch_size(workload_name):
     return 32
   elif workload_name == 'imagenet_resnet':
     return 1024
+  # TODO add imagenet_resnet variant bsz
+  elif workload_name == 'imagenet_resnet_gelu':
+    return 512
+  elif workload_name == 'imagenet_resnet_silu':
+    return 512
   elif workload_name == 'imagenet_vit':
     return 1024
   elif workload_name == 'librispeech_conformer':
