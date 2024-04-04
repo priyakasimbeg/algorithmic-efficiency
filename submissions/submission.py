@@ -274,8 +274,12 @@ def init_optimizer_state(workload: spec.Workload,
     optimizer_state['index'] = 0
 
   # Initialize first optstate
-  params_zeros_like = jax.tree_map(lambda s: jnp.zeros(s.shape_tuple),
-                                     workload.param_shapes)
+    def zeros_like_params(params):
+      return jax.tree_map(lambda x: jnp.zeros(x[0].shape), params)
+
+  jitted_zeros_like = jax.jit(zeros_like_params, device=jax.devices('cpu')[0])  
+  params_zeros_like = jitted_zeros_like(model_params)
+
   _, opt_init_fn, _, = optimizer_state['optimizers'][0]
   optimizer_state['current_opt_state'] = opt_init_fn(params_zeros_like)
   delete_pytree(params_zeros_like)
