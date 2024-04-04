@@ -246,7 +246,7 @@ def init_optimizer_state(workload: spec.Workload,
   for hparam in optimizer_state['hparam_points']:
     horizon_steps = math.ceil(hparam['training_horizon'] *
                               workload.step_hint)
-    end_step = end_step + horizon_steps + 1
+    end_step = end_step + horizon_steps
     print('horizon_steps = ', horizon_steps)
     lr_schedule_fn = jax_cosine_warmup(horizon_steps, hparam)
 
@@ -442,6 +442,7 @@ def update_params(workload: spec.Workload,
                                current_param_container,
                                batch,
                                per_device_rngs,
+                               grad_clip
                                label_smoothing)
   current_optimizer_state, current_param_container, new_model_state, loss, grad_norm = outputs
 
