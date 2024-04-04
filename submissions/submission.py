@@ -1,6 +1,7 @@
 """Submission file for an NAdamW optimizer with warmup+cosine LR in Jax."""
 
 import functools
+import flax
 
 # isort: off
 # We have to turn off isort here to resolve a conflict between isort and yapf.
@@ -25,6 +26,7 @@ import optax
 import math
 from flax.training import checkpoints as flax_checkpoints
 from typing import Sequence
+import gc
 
 from algorithmic_efficiency import spec
 
