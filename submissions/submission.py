@@ -150,8 +150,14 @@ def scale_by_nadam(b1: float = 0.9,
   raise_power = jnp.sqrt if power == 0.5 else lambda x: jnp.power(x, power)
 
   def init_fn(params):
-    mu = jax.tree_map(jnp.zeros_like, params)  # First moment
-    nu = jax.tree_map(jnp.zeros_like, params)  # Second moment
+    def zeros_like_params(params):
+      return jax.tree_map(jnp.zeros_like, params)
+    
+    jitted_zeros_like = jax.jit(zeros_like_params)
+    
+    mu = jitted_zeros_like(params)  # First moment
+    nu = jitted_zeros_like(params)  # Second moment
+
     return ScaleByAdamState(count=jnp.zeros([], jnp.int32), mu=mu, nu=nu)
 
   def update_fn(updates, state, params=None):
