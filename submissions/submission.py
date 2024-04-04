@@ -18,6 +18,7 @@ from typing import (Any,
 from absl import logging
 import chex
 from flax import jax_utils
+import flax
 import jax
 from jax import lax
 import jax.numpy as jnp
@@ -170,8 +171,14 @@ def scale_by_nadam(b1: float = 0.9,
   raise_power = jnp.sqrt if power == 0.5 else lambda x: jnp.power(x, power)
 
   def init_fn(params):
-    mu = jax.tree_map(jnp.zeros_like, params)  # First moment
-    nu = jax.tree_map(jnp.zeros_like, params)  # Second moment
+    def zeros_like_params(params):
+      return jax.tree_map(jnp.zeros_like, params)
+    
+    jitted_zeros_like = jax.jit(zeros_like_params)
+    
+    mu = jitted_zeros_like(params)  # First moment
+    nu = jitted_zeros_like(params)  # Second moment
+
     return ScaleByAdamState(count=jnp.zeros([], jnp.int32), mu=mu, nu=nu)
 
   def update_fn(updates, state, params=None):
@@ -230,7 +237,7 @@ def init_optimizer_state(workload: spec.Workload,
   optimizer_state['lr_fns'] = []
   print_live_arr_shapes()
 
-  def jax_cosine_warmup(step_hint: int, hyperparameters):
+def jax_cosine_warmup(step_hint: int, hyperparameters):
     # Create learning rate schedule.
     warmup_steps = int(hyperparameters['warmup_factor'] * step_hint)
     warmup_fn = optax.linear_schedule(
@@ -243,6 +250,24 @@ def init_optimizer_state(workload: spec.Workload,
     schedule_fn = optax.join_schedules(
         schedules=[warmup_fn, cosine_fn], boundaries=[warmup_steps])
     return schedule_fn
+
+def init_optimizer_state(workload: spec.Workload,
+                         model_params: spec.ParameterContainer,
+                         model_state: spec.ModelAuxiliaryState,
+                         hyperparameters: spec.Hyperparameters,
+                         rng: spec.RandomState) -> spec.OptimizerState:
+  """Creates a NAdamW optimizer and a learning rate schedule."""
+  del model_state
+  del rng
+  del hyperparameters
+
+  print('initializing optimizer state')
+
+  optimizer_state = {}
+  optimizer_state['hyperparameter_points'] = HPARAMS
+  optimizer_state['objects'] = []
+  optimizer_state['state'] = None
+  optimizer_state['current_hparam_index'] = 0
 
   # Create optimizer + LR schedule.
   end_step = 0
@@ -280,7 +305,7 @@ def init_optimizer_state(workload: spec.Workload,
 @functools.partial(
     jax.pmap,
     axis_name='batch',
-    in_axes=(None, None, 0, 0, 0, 0, 0, None, None),
+    in_axes=(None, None, 0, 0, 0, 0, 0, None),
     static_broadcasted_argnums=(0, 1),
     # todo add donate argnum 3
     donate_argnums=(2, 3, 4))
@@ -291,7 +316,6 @@ def pmapped_train_step(workload,
                        current_param_container,
                        batch,
                        rng,
-                       grad_clip,
                        label_smoothing):
 
   def _loss_fn(params):
@@ -324,11 +348,6 @@ def pmapped_train_step(workload,
   grad_norm = jnp.sqrt(
       sum(jnp.sum(g**2) for g in jax.tree_util.tree_leaves(grad)))
 
-  if grad_clip is not None:
-    grad_scaling_factor = grad_clip / (grad_norm + _GRAD_CLIP_EPS)
-    grad_scaling_factor = jax.lax.clamp(min=0.0, x=grad_scaling_factor, max=1.0)
-    grad = jax.tree_map(lambda x: x * grad_scaling_factor, grad)
-
   updates, new_optimizer_state = opt_update_fn(grad, optimizer_state,
                                                current_param_container)
   updated_params = optax.apply_updates(current_param_container, updates)
@@ -352,21 +371,17 @@ def update_params(workload: spec.Workload,
   del eval_results
   del hyperparameters
 
-  # End step of the current point
+  # Get optimizer state and update fn
   optimizer_state, _ = optimizer_state # maybe_restore_from_checkpoint call forces optimizer state to be tuple
   horizon_end_step, _, opt_update_fn = optimizer_state['optimizers'][optimizer_state['index']]
 
   # If we have reached the end of the current opt point horizon progress the index
   if global_step == horizon_end_step:
-    gc.collect()
-
     # Reset model weights
     logging.info('Moving to next opt point.')
-    checkpoint_state = {
-        'model_params': jax_utils.unreplicate(current_param_container)
-    }
-    ckpt = flax_checkpoints.restore_checkpoint('/tmp/', target=checkpoint_state)
-    current_param_container = jax_utils.replicate(ckpt['model_params'])
+    current_param_container = jax_utils.replicate(
+        flax.core.frozen_dict.freeze(
+            flax_checkpoints.restore_checkpoint('/tmp/', target=None)['params']))
     optimizer_state['index'] += 1
     try:
       horizon_end_step, opt_init_fn, opt_update_fn = optimizer_state['optimizers'][
@@ -406,7 +421,6 @@ def update_params(workload: spec.Workload,
                                current_param_container,
                                batch,
                                per_device_rngs,
-                               grad_clip,
                                label_smoothing)
   new_current_opt_state, new_params, new_model_state, loss, grad_norm = outputs
 
