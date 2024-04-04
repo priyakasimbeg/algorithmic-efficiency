@@ -222,21 +222,6 @@ def scale_by_learning_rate(learning_rate, flip_sign=True):
   return optax.scale(m * learning_rate)
 
 
-def init_optimizer_state(workload: spec.Workload,
-                         model_params: spec.ParameterContainer,
-                         model_state: spec.ModelAuxiliaryState,
-                         hyperparameters: spec.Hyperparameters,
-                         rng: spec.RandomState) -> spec.OptimizerState:
-  """Creates a NAdamW optimizer and a learning rate schedule."""
-  del model_state
-  del rng
-  del hyperparameters
-
-  optimizer_state = {'optimizers': []}
-  optimizer_state['hyperparameter_points'] = HPARAMS
-  optimizer_state['lr_fns'] = []
-  print_live_arr_shapes()
-
 def jax_cosine_warmup(step_hint: int, hyperparameters):
     # Create learning rate schedule.
     warmup_steps = int(hyperparameters['warmup_factor'] * step_hint)
@@ -250,6 +235,7 @@ def jax_cosine_warmup(step_hint: int, hyperparameters):
     schedule_fn = optax.join_schedules(
         schedules=[warmup_fn, cosine_fn], boundaries=[warmup_steps])
     return schedule_fn
+
 
 def init_optimizer_state(workload: spec.Workload,
                          model_params: spec.ParameterContainer,
@@ -265,8 +251,8 @@ def init_optimizer_state(workload: spec.Workload,
 
   optimizer_state = {}
   optimizer_state['hyperparameter_points'] = HPARAMS
-  optimizer_state['objects'] = []
-  optimizer_state['state'] = None
+  optimizer_state = {'optimizers': []}
+  optimizer_state['lr_fns'] = []
   optimizer_state['current_hparam_index'] = 0
 
   # Create optimizer + LR schedule.
@@ -305,7 +291,7 @@ def init_optimizer_state(workload: spec.Workload,
 @functools.partial(
     jax.pmap,
     axis_name='batch',
-    in_axes=(None, None, 0, 0, 0, 0, 0, None),
+    in_axes=(None, None, 0, 0, 0, 0, 0, None, None),
     static_broadcasted_argnums=(0, 1),
     # todo add donate argnum 3
     donate_argnums=(2, 3, 4))
@@ -316,6 +302,7 @@ def pmapped_train_step(workload,
                        current_param_container,
                        batch,
                        rng,
+                       grad_clip,
                        label_smoothing):
 
   def _loss_fn(params):
@@ -347,6 +334,11 @@ def pmapped_train_step(workload,
 
   grad_norm = jnp.sqrt(
       sum(jnp.sum(g**2) for g in jax.tree_util.tree_leaves(grad)))
+
+  if grad_clip is not None:
+    grad_scaling_factor = grad_clip / (grad_norm + _GRAD_CLIP_EPS)
+    grad_scaling_factor = jax.lax.clamp(min=0.0, x=grad_scaling_factor, max=1.0)
+    grad = jax.tree_map(lambda x: x * grad_scaling_factor, grad)
 
   updates, new_optimizer_state = opt_update_fn(grad, optimizer_state,
                                                current_param_container)
@@ -421,6 +413,7 @@ def update_params(workload: spec.Workload,
                                current_param_container,
                                batch,
                                per_device_rngs,
+                               grad_clip,
                                label_smoothing)
   new_current_opt_state, new_params, new_model_state, loss, grad_norm = outputs
 
