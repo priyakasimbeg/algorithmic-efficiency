@@ -41,7 +41,7 @@ HPARAMS = [
         "weight_decay": 0.09153141484048229,
         "warmup_factor": 0.01,
         "label_smoothing": 0.1,
-        "training_horizon": 0.05,
+        "training_horizon": 0.0055,
     },
     {
         "dropout_rate": 0.0,  # currently unused
@@ -409,7 +409,7 @@ def update_params(workload: spec.Workload,
       new_current_opt_state)
 
   # Log loss, grad_norm.
-  if global_step % 100 == 0 and workload.metrics_logger is not None:
+  if global_step % 1 == 0 and workload.metrics_logger is not None:
     lr_fn = optimizer_state['lr_fns'][optimizer_state['index']]
     workload.metrics_logger.append_scalar_metrics(
         {
