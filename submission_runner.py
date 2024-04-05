@@ -381,87 +381,87 @@ def train_once(
         del batch
         _reset_cuda_mem()
 
-        # try:
-        #   eval_start_time = get_time()
-        #   latest_eval_result = workload.eval_model(global_eval_batch_size,
-        #                                            model_params,
-        #                                            model_state,
-        #                                            eval_rng,
-        #                                            data_dir,
-        #                                            imagenet_v2_data_dir,
-        #                                            global_step)
-        #   # Check if targets reached.
-        #   # Note that this is one of the stopping conditions for the length of
-        #   # a training run. To score the run we only consider the time
-        #   # to validation target retrospectively.
-        #   train_state['validation_goal_reached'] = (
-        #       workload.has_reached_validation_target(latest_eval_result) or
-        #       train_state['validation_goal_reached'])
-        #   train_state['test_goal_reached'] = (
-        #       workload.has_reached_test_target(latest_eval_result) or
-        #       train_state['test_goal_reached'])
-        #   goals_reached = (
-        #       train_state['validation_goal_reached'] and
-        #       train_state['test_goal_reached'])
-        #   # Save last eval time.
-        #   eval_end_time = get_time()
-        #   train_state['last_eval_time'] = eval_end_time
+        try:
+          eval_start_time = get_time()
+          latest_eval_result = workload.eval_model(global_eval_batch_size,
+                                                   model_params,
+                                                   model_state,
+                                                   eval_rng,
+                                                   data_dir,
+                                                   imagenet_v2_data_dir,
+                                                   global_step)
+          # Check if targets reached.
+          # Note that this is one of the stopping conditions for the length of
+          # a training run. To score the run we only consider the time
+          # to validation target retrospectively.
+          train_state['validation_goal_reached'] = (
+              workload.has_reached_validation_target(latest_eval_result) or
+              train_state['validation_goal_reached'])
+          train_state['test_goal_reached'] = (
+              workload.has_reached_test_target(latest_eval_result) or
+              train_state['test_goal_reached'])
+          goals_reached = (
+              train_state['validation_goal_reached'] and
+              train_state['test_goal_reached'])
+          # Save last eval time.
+          eval_end_time = get_time()
+          train_state['last_eval_time'] = eval_end_time
 
-        #   # Accumulate eval time.
-        #   train_state[
-        #       'accumulated_eval_time'] += eval_end_time - eval_start_time
+          # Accumulate eval time.
+          train_state[
+              'accumulated_eval_time'] += eval_end_time - eval_start_time
 
-        #   # Add times to eval results for logging.
-        #   latest_eval_result['score'] = (
-        #       train_state['accumulated_submission_time'])
-        #   latest_eval_result[
-        #       'total_duration'] = eval_end_time - global_start_time
-        #   latest_eval_result['accumulated_submission_time'] = train_state[
-        #       'accumulated_submission_time']
-        #   latest_eval_result['accumulated_eval_time'] = train_state[
-        #       'accumulated_eval_time']
-        #   latest_eval_result['accumulated_logging_time'] = train_state[
-        #       'accumulated_logging_time']
-        #   time_since_start = latest_eval_result['total_duration']
-        #   logging.info(f'Time since start: {time_since_start:.2f}s, '
-        #                f'\tStep: {global_step}, \t{latest_eval_result}')
-        #   eval_results.append((global_step, latest_eval_result))
+          # Add times to eval results for logging.
+          latest_eval_result['score'] = (
+              train_state['accumulated_submission_time'])
+          latest_eval_result[
+              'total_duration'] = eval_end_time - global_start_time
+          latest_eval_result['accumulated_submission_time'] = train_state[
+              'accumulated_submission_time']
+          latest_eval_result['accumulated_eval_time'] = train_state[
+              'accumulated_eval_time']
+          latest_eval_result['accumulated_logging_time'] = train_state[
+              'accumulated_logging_time']
+          time_since_start = latest_eval_result['total_duration']
+          logging.info(f'Time since start: {time_since_start:.2f}s, '
+                       f'\tStep: {global_step}, \t{latest_eval_result}')
+          eval_results.append((global_step, latest_eval_result))
 
-        #   logging_start_time = get_time()
+          logging_start_time = get_time()
 
-        #   if log_dir is not None:
-        #     metrics_logger.append_scalar_metrics(
-        #         latest_eval_result,
-        #         global_step=global_step,
-        #         preemption_count=preemption_count,
-        #         is_eval=True,
-        #     )
-        #     if save_checkpoints:
-        #       checkpoint_utils.save_checkpoint(
-        #           framework=FLAGS.framework,
-        #           optimizer_state=optimizer_state,
-        #           model_params=model_params,
-        #           model_state=model_state,
-        #           train_state=train_state,
-        #           eval_results=eval_results,
-        #           global_step=global_step,
-        #           preemption_count=preemption_count,
-        #           checkpoint_dir=log_dir,
-        #           save_intermediate_checkpoints=FLAGS
-        #           .save_intermediate_checkpoints)
+          if log_dir is not None:
+            metrics_logger.append_scalar_metrics(
+                latest_eval_result,
+                global_step=global_step,
+                preemption_count=preemption_count,
+                is_eval=True,
+            )
+            if save_checkpoints:
+              checkpoint_utils.save_checkpoint(
+                  framework=FLAGS.framework,
+                  optimizer_state=optimizer_state,
+                  model_params=model_params,
+                  model_state=model_state,
+                  train_state=train_state,
+                  eval_results=eval_results,
+                  global_step=global_step,
+                  preemption_count=preemption_count,
+                  checkpoint_dir=log_dir,
+                  save_intermediate_checkpoints=FLAGS
+                  .save_intermediate_checkpoints)
 
-        #   logging_end_time = get_time()
-        #   train_state['accumulated_logging_time'] += (
-        #       logging_end_time - logging_start_time)
+          logging_end_time = get_time()
+          train_state['accumulated_logging_time'] += (
+              logging_end_time - logging_start_time)
 
-        #   _reset_cuda_mem()
+          _reset_cuda_mem()
 
-        # except RuntimeError as e:
-        #   logging.exception(f'Eval step {global_step} error.\n')
-        #   if 'out of memory' in str(e):
-        #     logging.warning('Error: GPU out of memory during eval during step '
-        #                     f'{global_step}, error : {str(e)}.')
-        #     _reset_cuda_mem()
+        except RuntimeError as e:
+          logging.exception(f'Eval step {global_step} error.\n')
+          if 'out of memory' in str(e):
+            logging.warning('Error: GPU out of memory during eval during step '
+                            f'{global_step}, error : {str(e)}.')
+            _reset_cuda_mem()
 
     train_state['last_step_end_time'] = get_time()
 
