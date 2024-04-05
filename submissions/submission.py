@@ -228,6 +228,7 @@ def init_optimizer_state(workload: spec.Workload,
   for hyperparameters in optimizer_state['hyperparameter_points']:
     horizon_steps = math.ceil(hyperparameters['training_horizon'] *
                               workload.step_hint)
+    horizon_steps = 5
     end_step = end_step + horizon_steps
     lr_schedule_fn = jax_cosine_warmup(horizon_steps, hyperparameters)
     opt_init_fn, opt_update_fn = nadamw(
