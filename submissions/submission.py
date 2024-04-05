@@ -246,6 +246,11 @@ def init_optimizer_state(workload: spec.Workload,
                          model_state: spec.ModelAuxiliaryState,
                          hyperparameters: spec.Hyperparameters,
                          rng: spec.RandomState) -> spec.OptimizerState:
+  # Save model params
+  model_params = jax_utils.unreplicate(model_params)
+  checkpoint_state = {'model_params': model_params}
+  flax_checkpoints.save_checkpoint(
+      '/tmp', target=checkpoint_state, step=0, overwrite=True, keep=1)
   return (None, None)
 
 
@@ -373,6 +378,7 @@ def update_params(workload: spec.Workload,
   # Always rounding down is fine?
   # Each segment of training should be equivalent to running one hparam point from scratch.
   training_segment_lengths = [int(workload.step_hint * point['training_horizon']) for point in HPARAMS]
+  # TODO: remove debugging
   training_segment_lengths = [10, 10, 10]
   left_bounds = np.hstack([[0], np.cumsum(training_segment_lengths)[:-1]])
   
