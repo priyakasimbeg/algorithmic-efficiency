@@ -26,6 +26,7 @@ from flax.training import checkpoints as flax_checkpoints
 from typing import Sequence
 import gc
 import numpy as np
+from absl import logging
 
 from algorithmic_efficiency import spec
 
@@ -346,6 +347,7 @@ def base_update_params(workload: spec.Workload,
   if global_step % 100 == 0 and workload.metrics_logger is not None:
     workload.metrics_logger.append_scalar_metrics(
         {
+            ''
             'loss': loss[0],
             'grad_norm': grad_norm[0],
         }, global_step)
@@ -371,6 +373,7 @@ def update_params(workload: spec.Workload,
   # Always rounding down is fine?
   # Each segment of training should be equivalent to running one hparam point from scratch.
   training_segment_lengths = [int(workload.step_hint * point['training_horizon']) for point in HPARAMS]
+  training_segment_lengths = [10, 10, 10]
   left_bounds = np.hstack([[0], np.cumsum(training_segment_lengths)[:-1]])
   
   segment = _get_segment(global_step, left_bounds)
@@ -378,6 +381,7 @@ def update_params(workload: spec.Workload,
   local_step = global_step - left_bounds[segment]
 
   if local_step == 0:
+    logging.info('Moving to next point.')
     # TODO: reset model params to their initial values
     ckpt = flax_checkpoints.restore_checkpoint('/tmp/', target= {
         'model_params': jax_utils.unreplicate(current_param_container)
@@ -423,7 +427,11 @@ def get_batch_size(workload_name):
     return 32
   elif workload_name == 'imagenet_resnet':
     return 1024
-  # Todo workload variants for imagenet_resnet
+  # TODO add imagenet_resnet variant bsz
+  elif workload_name == 'imagenet_resnet_gelu':
+    return 512
+  elif workload_name == 'imagenet_resnet_silu':
+    return 512
   elif workload_name == 'imagenet_vit':
     return 1024
   elif workload_name == 'librispeech_conformer':
