@@ -25,7 +25,7 @@ import math
 from flax.training import checkpoints as flax_checkpoints
 from typing import Sequence
 import gc
-
+import numpy as np
 
 from algorithmic_efficiency import spec
 
