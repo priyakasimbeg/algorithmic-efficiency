@@ -212,8 +212,6 @@ def base_init_optimizer_state(workload: spec.Workload,
   del model_state
   del rng
 
-  # hyperparameters = HPARAMS
-
   def jax_cosine_warmup(step_hint: int, hyperparameters):
     # Create learning rate schedule.
     warmup_steps = int(hyperparameters['warmup_factor'] * step_hint)
@@ -247,7 +245,7 @@ def init_optimizer_state(workload: spec.Workload,
                          model_state: spec.ModelAuxiliaryState,
                          hyperparameters: spec.Hyperparameters,
                          rng: spec.RandomState) -> spec.OptimizerState:
-  return None
+  return (None, None)
 
 
 @functools.partial(
