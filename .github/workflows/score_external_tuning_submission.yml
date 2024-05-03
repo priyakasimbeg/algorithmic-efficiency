@@ -5,8 +5,8 @@ on:
     branches:
       - 'scoring' 
 env:
-  SUBMISSION_PATH: /home/kasimbeg/algorithmic-efficiency/some_path
-  TUNING_SEARCH_SPACE_FLAG: /home/kasimbeg/algorithmic-efficiency/some_path
+  SUBMISSION_PATH: /home/kasimbeg/algorithmic-efficiency/some_other_path
+  TUNING_SEARCH_SPACE_FLAG: /home/kasimbeg/algorithmic-efficiency/some_other_path
   EXPERIMENT_NAME: Team_blub/some_submission_path
   FRAMEWORK: jax
   DOCKER_IMAGE: us-central1-docker.pkg.dev/training-algorithms-external/mlcommons-docker-repo/algoperf_jax_dev
