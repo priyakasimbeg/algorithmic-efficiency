@@ -1,7 +1,6 @@
 # Test page home
 
 <div id="leaderboardPlot"></div>
-
 <table id="leaderboardTable">
 <thead>
     <tr>
@@ -15,7 +14,7 @@
 </tbody>
 </table>
 
-<scrip src="https://cdn.plot.ly/plotly-latest.min.js">
+<script src="https://cdn.plot.ly/plotly-latest.min.js">
 // Sample Leaderboard Data (Replace with your actual data)
 var leaderboardData = [
     { algorithm: 'Algorithm A', score: 95 },
