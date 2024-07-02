@@ -1,18 +1,54 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <title>TEST PAGE AlgoPerf Leaderboard</title>
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
-  <div id="myPlot"></div>
+  <div id="leaderboardPlot"></div>
+  <table id="leaderboardTable">
+    <thead>
+      <tr>
+        <th>Rank</th>
+        <th>Algorithm</th>
+        <th>Performance (Score)</th>
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+
   <script>
-    var data = [{
-      x: [1, 2, 3],
-      y: [2, 6, 3],
-      type: 'scatter'
+    // Sample Leaderboard Data (Replace with your actual data)
+    var leaderboardData = [
+      { algorithm: 'Algorithm A', score: 95 },
+      { algorithm: 'Algorithm B', score: 88 },
+      { algorithm: 'Algorithm C', score: 76 },
+    ];
+
+    // Create Table
+    var tableBody = document.getElementById('leaderboardTable').getElementsByTagName('tbody')[0];
+    for (var i = 0; i < leaderboardData.length; i++) {
+      var row = tableBody.insertRow();
+      row.insertCell().innerHTML = i + 1;
+      row.insertCell().innerHTML = leaderboardData[i].algorithm;
+      row.insertCell().innerHTML = leaderboardData[i].score;
+    }
+
+    // Create Plot
+    var plotData = [{
+      x: leaderboardData.map(d => d.algorithm),
+      y: leaderboardData.map(d => d.score),
+      type: 'bar'
     }];
 
-    Plotly.newPlot('myPlot', data);
+    var layout = {
+      title: 'AlgoPerf Leaderboard',
+      xaxis: { title: 'Algorithm' },
+      yaxis: { title: 'Performance Score' }
+    };
+
+    Plotly.newPlot('leaderboardPlot', plotData, layout);
   </script>
 </body>
 </html>
