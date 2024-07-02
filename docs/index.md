@@ -55,7 +55,7 @@ var plotData = [{
 }];
 
 var layout = {
-    title: 'AlgoPerf Leaderboard (Cumulative Scores)',
+    title: 'Leaderboard (Cumulative Scores)',
     xaxis: { title: 'Algorithm' },
     yaxis: { title: 'Cumulative Score' }
 };
