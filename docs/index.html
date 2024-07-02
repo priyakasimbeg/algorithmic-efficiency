@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+  <div id="myPlot"></div>
+  <script>
+    var data = [{
+      x: [1, 2, 3],
+      y: [2, 6, 3],
+      type: 'scatter'
+    }];
+
+    Plotly.newPlot('myPlot', data);
+  </script>
+</body>
+</html>
