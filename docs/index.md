@@ -1,1 +1,63 @@
 # Test page home
+
+<h1 style="text-align: center;">AlgoPerf Leaderboard</h1>
+
+  <div id="leaderboardPlot"></div>
+  
+  <table id="leaderboardTable">
+    <thead>
+      <tr>
+        <th>Rank</th>
+        <th>Algorithm</th>
+        <th>Performance (Score)</th>
+        <th>Cumulative Score</th> 
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+
+  <script>
+    // Sample Leaderboard Data (Replace with your actual data)
+    var leaderboardData = [
+      { algorithm: 'Algorithm A', score: 95 },
+      { algorithm: 'Algorithm B', score: 88 },
+      { algorithm: 'Algorithm C', score: 76 },
+      { algorithm: 'Algorithm D', score: 60 },
+    ];
+
+    // Calculate Cumulative Scores
+    var cumulativeScores = [];
+    var totalScore = 0;
+    for (var i = 0; i < leaderboardData.length; i++) {
+      totalScore += leaderboardData[i].score;
+      cumulativeScores.push(totalScore);
+    }
+
+    // Create Table (add cumulative score column)
+    var tableBody = document.getElementById('leaderboardTable').getElementsByTagName('tbody')[0];
+    for (var i = 0; i < leaderboardData.length; i++) {
+      var row = tableBody.insertRow();
+      row.insertCell().innerHTML = i + 1;
+      row.insertCell().innerHTML = leaderboardData[i].algorithm;
+      row.insertCell().innerHTML = leaderboardData[i].score;
+      row.insertCell().innerHTML = cumulativeScores[i]; // Add cumulative score
+    }
+
+    // Create Line Plot
+    var plotData = [{
+      x: leaderboardData.map(d => d.algorithm),
+      y: cumulativeScores,  
+      type: 'scatter',
+      mode: 'lines+markers',
+      marker: { size: 8 }
+    }];
+
+    var layout = {
+      title: 'AlgoPerf Leaderboard (Cumulative Scores)',
+      xaxis: { title: 'Algorithm' },
+      yaxis: { title: 'Cumulative Score' }
+    };
+
+    Plotly.newPlot('leaderboardPlot', plotData, layout);
+  </script>
