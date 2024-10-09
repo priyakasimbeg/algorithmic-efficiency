@@ -28,7 +28,6 @@ from .schedule import warmup_constant_schedule
 from optax._src import numerics
 # from optax.transforms import _adding
 
-from optax import tree_utils as otu
 
 from collections.abc import Callable
 from typing import Any, NamedTuple, Optional, Union
