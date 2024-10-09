@@ -234,7 +234,7 @@ def scale_by_rms(
       scaling = jax.tree_util.tree_map(lambda n: 1/(jnp.sqrt(n) + eps), nu_hat)
     updates = jax.tree_util.tree_map(lambda s, g: s * g, scaling, updates)
     if bias_correction:
-      new_state = transform.ScaleByRmsWithCountState(count=count_inc, nu=nu)
+      new_state = ScaleByRmsWithCountState(count=count_inc, nu=nu)
     else:
       new_state = transform.ScaleByRmsState(nu=nu)
     return updates, new_state
