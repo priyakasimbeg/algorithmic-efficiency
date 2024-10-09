@@ -39,6 +39,8 @@ from optax._src import base
 # from optax._src import numerics
 from optax._src import wrappers
 
+Schedule = Callable[[chex.Numeric], chex.Numeric]
+ScheduleState = Any
 ScalarOrSchedule = Union[float, jax.Array, Schedule]
 
 
