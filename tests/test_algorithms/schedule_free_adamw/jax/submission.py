@@ -7,8 +7,7 @@ from flax import jax_utils
 import jax
 from jax import lax
 import jax.numpy as jnp
-import optax
-from algorithmic_efficiency.reference_algorithms.schedule_free_adamw.jax.schedule_free_optax import schedule_free_adamw
+from .schedule_free_optax import schedule_free_adamw
 from algorithmic_efficiency import spec
 
 _GRAD_CLIP_EPS = 1e-6

@@ -51,7 +51,7 @@ class ModelDiffTest(parameterized.TestCase):
     try:
       run(
           f'XLA_PYTHON_CLIENT_ALLOCATOR=platform python3 -m tests.reference_algorithm_tests --workload={workload} --framework=jax --global_batch_size={GLOBAL_BATCH_SIZE} --log_file={jax_logs}'
-          f' --submission_path=/home/kasimbeg/algorithmic-efficiency/reference_algorithms/schedule_free_adamw/jax/submission.py --identical=True --tuning_search_space=None --num_train_steps={NUM_TRAIN_STEPS}',
+          f' --submission_path=algorithmic-efficiency/reference_algorithms/schedule_free_adamw/jax/submission.py --identical=True --tuning_search_space=None --num_train_steps={NUM_TRAIN_STEPS}',
           shell=True,
           stdout=DEVNULL,
           stderr=STDOUT,
@@ -61,7 +61,7 @@ class ModelDiffTest(parameterized.TestCase):
     try:
       run(
           f'XLA_PYTHON_CLIENT_ALLOCATOR=platform torchrun --standalone --nnodes 1 --nproc_per_node 8 -m tests.reference_algorithm_tests --workload={workload} --framework=pytorch --global_batch_size={GLOBAL_BATCH_SIZE} --log_file={pyt_logs}'
-          f' --submission_path=/home/kasimbeg/algorithmic-efficiency/reference_algorithms/schedule_free_adamw/pytorch/submission.py --identical=True --tuning_search_space=None --num_train_steps={NUM_TRAIN_STEPS}',
+          f' --submission_path=algorithmic-efficiency/reference_algorithms/schedule_free_adamw/pytorch/submission.py --identical=True --tuning_search_space=None --num_train_steps={NUM_TRAIN_STEPS}',
           shell=True,
           stdout=DEVNULL,
           stderr=STDOUT,
