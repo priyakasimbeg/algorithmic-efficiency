@@ -34,9 +34,9 @@ import chex
 import jax
 import jax.numpy as jnp
 
-from optax import tree_utils as otu
+# from optax import tree_utils as otu
 from optax._src import base
-from optax._src import numerics
+# from optax._src import numerics
 from optax._src import wrappers
 
 
