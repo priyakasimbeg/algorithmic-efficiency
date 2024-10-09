@@ -209,8 +209,8 @@ def add_decayed_weights(
   # E.g. it is common to skip weight decay on bias units and batch stats.
   if mask is not None:
     return wrappers.masked(
-        base.GradientTransformation(base.init_empty_state, update_fn), mask)
-  return base.GradientTransformation(base.init_empty_state, update_fn)
+        base.GradientTransformation(init_empty_state, update_fn), mask)
+  return base.GradientTransformation(init_empty_state, update_fn)
 
 class ScheduleFreeState(NamedTuple):
   """State for schedule_free."""
