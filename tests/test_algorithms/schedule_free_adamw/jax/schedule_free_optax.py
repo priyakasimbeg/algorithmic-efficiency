@@ -125,7 +125,7 @@ def tree_full_like(
   Returns:
     an tree with the same structure as ``tree``.
   """
-  return jax.tree.map(
+  return jax.tree_util.tree_map(
       lambda x: jnp.full_like(x, fill_value, dtype=dtype), tree)
 
 def tree_update_moment_per_elem_norm(updates, moments, decay, order):
@@ -141,7 +141,7 @@ def tree_update_moment_per_elem_norm(updates, moments, decay, order):
         half_order = int(half_order)
       return numerics.abs_sq(g) ** half_order
 
-  return jax.tree.map(
+  return jax.tree_util.tree_map(
       lambda g, t: (
           (1 - decay) * orderth_norm(g) + decay * t if g is not None else None
       ),
@@ -161,7 +161,7 @@ def tree_bias_correction(moment, decay, count):
   bias_correction_ = 1 - decay**count
 
   # Perform division in the original precision.
-  return jax.tree.map(
+  return jax.tree_util.tree_map(
       lambda t: t / bias_correction_.astype(t.dtype), moment)
 
 def scale_by_rms(
@@ -224,10 +224,10 @@ def scale_by_rms(
       count_inc = jnp.asarray(0)
       nu_hat = nu
     if eps_in_sqrt:
-      scaling = jax.tree.map(lambda n: jax.lax.rsqrt(n + eps), nu_hat)
+      scaling = jax.tree_util.tree_map(lambda n: jax.lax.rsqrt(n + eps), nu_hat)
     else:
-      scaling = jax.tree.map(lambda n: 1/(jnp.sqrt(n) + eps), nu_hat)
-    updates = jax.tree.map(lambda s, g: s * g, scaling, updates)
+      scaling = jax.tree_util.tree_map(lambda n: 1/(jnp.sqrt(n) + eps), nu_hat)
+    updates = jax.tree_util.tree_map(lambda s, g: s * g, scaling, updates)
     if bias_correction:
       new_state = transform.ScaleByRmsWithCountState(count=count_inc, nu=nu)
     else:
@@ -256,7 +256,7 @@ def add_decayed_weights(
   def update_fn(updates, state, params):
     if params is None:
       raise ValueError(base.NO_PARAMS_MSG)
-    updates = jax.tree.map(
+    updates = jax.tree_util.tree_map(
         lambda g, p: g + weight_decay * p, updates, params)
     return updates, state
 
