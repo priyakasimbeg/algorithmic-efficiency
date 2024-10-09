@@ -568,7 +568,7 @@ def schedule_free_adamw(
           decay=b2, eps=eps, eps_in_sqrt=False, bias_correction=True
       ),
       add_decayed_weights(weight_decay),
-      transform.scale_by_learning_rate(learning_rate)
+      scale_by_learning_rate(learning_rate)
   )
   return schedule_free(
       optimizer,
