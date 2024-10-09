@@ -213,7 +213,7 @@ def scale_by_rms(
   def init_fn(params):
     nu = tree_full_like(params, initial_scale)  # second moment
     if bias_correction:
-      return transform.ScaleByRmsWithCountState(
+      return ScaleByRmsWithCountState(
           count=jnp.zeros([], jnp.int32), nu=nu
       )
     else:
