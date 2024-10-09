@@ -2,6 +2,7 @@
 
 import functools
 from typing import Dict, Iterator, List, Tuple
+import optax
 
 from flax import jax_utils
 import jax
