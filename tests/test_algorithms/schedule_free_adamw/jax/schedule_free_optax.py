@@ -47,6 +47,11 @@ Schedule = Callable[[chex.Numeric], chex.Numeric]
 ScheduleState = Any
 ScalarOrSchedule = Union[float, jax.Array, Schedule]
 
+class ScaleByRmsWithCountState(NamedTuple):
+  """State for exponential root mean-squared (RMS)-normalized updates."""
+  count: chex.Array  # shape=(), dtype=jnp.int32.
+  nu: base.Updates
+
 
 class ScaleByScheduleState(NamedTuple):
   """Maintains count for scale scheduling."""
