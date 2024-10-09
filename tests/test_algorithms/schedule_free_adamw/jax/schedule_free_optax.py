@@ -39,6 +39,9 @@ from optax._src import base
 # from optax._src import numerics
 from optax._src import wrappers
 
+ScalarOrSchedule = Union[float, jax.Array, Schedule]
+
+
 
 def add_decayed_weights(
     weight_decay: Union[float, jax.Array] = 0.0,
@@ -92,7 +95,7 @@ def schedule_free_eval_params(state: ScheduleFreeState, params: base.Params):
 
 def schedule_free(
     base_optimizer: base.GradientTransformation,
-    learning_rate: base.ScalarOrSchedule,
+    learning_rate: ScalarOrSchedule,
     b1: float = 0.9,
     weight_lr_power: float = 2.0,
     adjusted_polyak_weight_exp: float = 0.75,
