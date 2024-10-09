@@ -47,6 +47,13 @@ Schedule = Callable[[chex.Numeric], chex.Numeric]
 ScheduleState = Any
 ScalarOrSchedule = Union[float, jax.Array, Schedule]
 
+class EmptyState(NamedTuple):
+  """An empty state for the simplest stateless transformations."""
+
+def init_empty_state(params) -> EmptyState:
+  """Init function for a :class:`GradientTransformation` with empty state."""
+  del params
+  return EmptyState()
 
 def tree_full_like(
     tree: Any,
