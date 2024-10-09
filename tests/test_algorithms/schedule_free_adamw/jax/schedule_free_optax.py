@@ -47,6 +47,60 @@ ScheduleState = Any
 ScalarOrSchedule = Union[float, jax.Array, Schedule]
 
 
+def tree_full_like(
+    tree: Any,
+    fill_value: jax.typing.ArrayLike,
+    dtype: Optional[jax.typing.DTypeLike] = None,
+) -> Any:
+  """Creates an identical tree where all tensors are filled with ``fill_value``.
+  
+  Args:
+    tree: pytree.
+    fill_value: the fill value for all tensors in the tree.
+    dtype: optional dtype to use for the tensors in the tree.
+
+  Returns:
+    an tree with the same structure as ``tree``.
+  """
+  return jax.tree.map(
+      lambda x: jnp.full_like(x, fill_value, dtype=dtype), tree)
+
+def tree_update_moment_per_elem_norm(updates, moments, decay, order):
+  """Compute the EMA of the `order`-th moment of the element-wise norm."""
+
+  def orderth_norm(g):
+    if jnp.isrealobj(g):
+      return g ** order
+    else:
+      half_order = order / 2
+      # JAX generates different HLO for int and float `order`
+      if half_order.is_integer():
+        half_order = int(half_order)
+      return numerics.abs_sq(g) ** half_order
+
+  return jax.tree.map(
+      lambda g, t: (
+          (1 - decay) * orderth_norm(g) + decay * t if g is not None else None
+      ),
+      updates,
+      moments,
+      is_leaf=lambda x: x is None,
+  )
+
+@functools.partial(jax.jit, inline=True)
+def tree_bias_correction(moment, decay, count):
+  """Performs bias correction. It becomes a no-op as count goes to infinity."""
+  # The conversion to the data type of the moment ensures that bfloat16 remains
+  # bfloat16 in the optimizer state. This conversion has to be done after
+  # `bias_correction_` is calculated as calculating `decay**count` in low
+  # precision can result in it being rounded to 1 and subsequently a
+  # "division by zero" error.
+  bias_correction_ = 1 - decay**count
+
+  # Perform division in the original precision.
+  return jax.tree.map(
+      lambda t: t / bias_correction_.astype(t.dtype), moment)
+
 def scale_by_rms(
     decay: float = 0.9,
     eps: float = 1e-8,
@@ -89,7 +143,7 @@ def scale_by_rms(
   """
 
   def init_fn(params):
-    nu = otu.tree_full_like(params, initial_scale)  # second moment
+    nu = tree_full_like(params, initial_scale)  # second moment
     if bias_correction:
       return transform.ScaleByRmsWithCountState(
           count=jnp.zeros([], jnp.int32), nu=nu
@@ -99,10 +153,10 @@ def scale_by_rms(
 
   def update_fn(updates, state, params=None):
     del params
-    nu = otu.tree_update_moment_per_elem_norm(updates, state.nu, decay, 2)
+    nu = tree_update_moment_per_elem_norm(updates, state.nu, decay, 2)
     if bias_correction:
       count_inc = numerics.safe_increment(state.count)
-      nu_hat = otu.tree_bias_correction(nu, decay, count_inc)
+      nu_hat = tree_bias_correction(nu, decay, count_inc)
     else:
       count_inc = jnp.asarray(0)
       nu_hat = nu
