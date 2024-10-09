@@ -25,8 +25,51 @@ from optax._src import combine
 from optax._src import transform
 # from optax.schedules import _schedule
 from .schedule import warmup_constant_schedule
-from optax.transforms import _adding
+# from optax.transforms import _adding
 
+from collections.abc import Callable
+from typing import Any, NamedTuple, Optional, Union
+
+import chex
+import jax
+import jax.numpy as jnp
+
+from optax import tree_utils as otu
+from optax._src import base
+from optax._src import numerics
+from optax._src import wrappers
+
+
+def add_decayed_weights(
+    weight_decay: Union[float, jax.Array] = 0.0,
+    mask: Optional[Union[Any, Callable[[base.Params], Any]]] = None
+) -> base.GradientTransformation:
+  """Add parameter scaled by `weight_decay`.
+
+  Args:
+    weight_decay: A scalar weight decay rate.
+    mask: A tree with same structure as (or a prefix of) the params PyTree,
+      or a Callable that returns such a pytree given the params/updates.
+      The leaves should be booleans, `True` for leaves/subtrees you want to
+      apply the transformation to, and `False` for those you want to skip.
+
+  Returns:
+    A `GradientTransformation` object.
+  """
+
+  def update_fn(updates, state, params):
+    if params is None:
+      raise ValueError(base.NO_PARAMS_MSG)
+    updates = jax.tree.map(
+        lambda g, p: g + weight_decay * p, updates, params)
+    return updates, state
+
+  # If mask is not `None`, apply mask to the gradient transformation.
+  # E.g. it is common to skip weight decay on bias units and batch stats.
+  if mask is not None:
+    return wrappers.masked(
+        base.GradientTransformation(base.init_empty_state, update_fn), mask)
+  return base.GradientTransformation(base.init_empty_state, update_fn)
 
 class ScheduleFreeState(NamedTuple):
   """State for schedule_free."""
@@ -279,7 +322,7 @@ def schedule_free_sgd(
   optimizer = alias.sgd(learning_rate)
   if weight_decay > 0:
     optimizer = combine.chain(
-        _adding.add_decayed_weights(weight_decay), optimizer)
+        add_decayed_weights(weight_decay), optimizer)
   return schedule_free(
       optimizer,
       learning_rate=learning_rate,
@@ -360,7 +403,7 @@ def schedule_free_adamw(
       transform.scale_by_rms(
           decay=b2, eps=eps, eps_in_sqrt=False, bias_correction=True
       ),
-      _adding.add_decayed_weights(weight_decay),
+      add_decayed_weights(weight_decay),
       transform.scale_by_learning_rate(learning_rate)
   )
   return schedule_free(
