@@ -120,7 +120,7 @@ def scale_by_schedule(
     updates = jax.tree_util.tree_map(
         lambda g: jnp.array(step_size, dtype=g.dtype) * g, updates)
     return updates, ScaleByScheduleState(
-        count=numerics.safe_increment(state.count))
+        count=safe_increment(state.count))
 
   return base.GradientTransformation(init_fn, update_fn)
 
@@ -263,7 +263,7 @@ def scale_by_rms(
     del params
     nu = tree_update_moment_per_elem_norm(updates, state.nu, decay, 2)
     if bias_correction:
-      count_inc = numerics.safe_increment(state.count)
+      count_inc = safe_increment(state.count)
       nu_hat = tree_bias_correction(nu, decay, count_inc)
     else:
       count_inc = jnp.asarray(0)
