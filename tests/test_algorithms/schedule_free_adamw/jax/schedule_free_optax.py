@@ -479,7 +479,7 @@ def schedule_free_adamw(
     )
   # The following is the same as adamw, but with the momentum term removed.
   optimizer = combine.chain(
-      transform.scale_by_rms(
+      scale_by_rms(
           decay=b2, eps=eps, eps_in_sqrt=False, bias_correction=True
       ),
       add_decayed_weights(weight_decay),
