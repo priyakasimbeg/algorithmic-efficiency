@@ -24,7 +24,7 @@ from optax._src import base
 from optax._src import combine
 from optax._src import transform
 # from optax.schedules import _schedule
-import .schedule
+from .schedule import warmup_constant_schedule
 from optax.transforms import _adding
 
 
@@ -271,7 +271,7 @@ def schedule_free_sgd(
     Objective function: 2.41E-01
   """
   if warmup_steps > 0:
-    learning_rate = schedule.warmup_constant_schedule(
+    learning_rate = warmup_constant_schedule(
         init_value=0,
         peak_value=learning_rate,
         warmup_steps=warmup_steps,
@@ -350,7 +350,7 @@ def schedule_free_adamw(
     Objective function: 4.13E-01
   """
   if warmup_steps > 0:
-    learning_rate = schedule.warmup_constant_schedule(
+    learning_rate = warmup_constant_schedule(
         init_value=0,
         peak_value=learning_rate,
         warmup_steps=warmup_steps,
