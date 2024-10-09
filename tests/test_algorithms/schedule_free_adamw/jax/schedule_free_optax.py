@@ -24,7 +24,7 @@ from optax._src import base
 from optax._src import combine
 from optax._src import transform
 # from optax.schedules import _schedule
-import _schedule
+import ._schedule
 from optax.transforms import _adding
 
 
