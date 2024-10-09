@@ -25,7 +25,10 @@ from optax._src import combine
 from optax._src import transform
 # from optax.schedules import _schedule
 from .schedule import warmup_constant_schedule
+from optax._src import numerics
 # from optax.transforms import _adding
+
+from optax import tree_utils as otu
 
 from collections.abc import Callable
 from typing import Any, NamedTuple, Optional, Union
@@ -44,6 +47,77 @@ ScheduleState = Any
 ScalarOrSchedule = Union[float, jax.Array, Schedule]
 
 
+def scale_by_rms(
+    decay: float = 0.9,
+    eps: float = 1e-8,
+    initial_scale: float = 0.0,
+    eps_in_sqrt: bool = True,
+    bias_correction: bool = False,
+) -> base.GradientTransformation:
+  r"""Rescale updates by the root of the exp. moving avg of the square.
+
+  .. warning::
+    Default behavior of optax's RMSprop (``eps_in_sqrt=True``) differs from
+    Pytorch's implementation and could impact performance.
+    If ``eps_in_sqrt=True``, in the denominator, optax uses
+    :math:`\sqrt{v + \epsilon}` in the denominator whereas PyTorch uses
+    :math:`\sqrt{v} + \epsilon`.
+    Using ``eps_in_sqrt=False`` in optax will match PyTorch's behavior.
+    See
+    https://github.com/google-deepmind/optax/issues/532 for more detail.
+
+  .. note::
+    Using `scale_by_rms(decay=b2, eps_in_sqrt=False, bias_correction=True)`
+    will match the behavior of `scale_by_adam(b1=0, b2=b2)`, while sparing the
+    memory cost of storing the first moment.
+
+  References:
+    Hinton, `Overview of mini-batch gradient descent`
+    <www.cs.toronto.edu/~tijmen/csc321/slides/lecture_slides_lec6.pdf>`_, 2012
+
+  Args:
+    decay: Decay rate for the exponentially weighted average of squared grads.
+    eps: Term added to the denominator to improve numerical stability.
+    initial_scale: Initial value for second moment.
+    eps_in_sqrt: Whether to add ``eps`` in the square root of the
+      denominator or outside the square root.
+    bias_correction: Whether to apply bias correction to the exponentially
+      weighted average of squared grads.
+
+  Returns:
+    A `GradientTransformation` object.
+  """
+
+  def init_fn(params):
+    nu = otu.tree_full_like(params, initial_scale)  # second moment
+    if bias_correction:
+      return transform.ScaleByRmsWithCountState(
+          count=jnp.zeros([], jnp.int32), nu=nu
+      )
+    else:
+      return transform.ScaleByRmsState(nu=nu)
+
+  def update_fn(updates, state, params=None):
+    del params
+    nu = otu.tree_update_moment_per_elem_norm(updates, state.nu, decay, 2)
+    if bias_correction:
+      count_inc = numerics.safe_increment(state.count)
+      nu_hat = otu.tree_bias_correction(nu, decay, count_inc)
+    else:
+      count_inc = jnp.asarray(0)
+      nu_hat = nu
+    if eps_in_sqrt:
+      scaling = jax.tree.map(lambda n: jax.lax.rsqrt(n + eps), nu_hat)
+    else:
+      scaling = jax.tree.map(lambda n: 1/(jnp.sqrt(n) + eps), nu_hat)
+    updates = jax.tree.map(lambda s, g: s * g, scaling, updates)
+    if bias_correction:
+      new_state = transform.ScaleByRmsWithCountState(count=count_inc, nu=nu)
+    else:
+      new_state = transform.ScaleByRmsState(nu=nu)
+    return updates, new_state
+
+  return base.GradientTransformation(init_fn, update_fn)
 
 def add_decayed_weights(
     weight_decay: Union[float, jax.Array] = 0.0,
