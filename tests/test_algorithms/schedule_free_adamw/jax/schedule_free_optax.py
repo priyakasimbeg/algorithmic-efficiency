@@ -49,7 +49,7 @@ ScalarOrSchedule = Union[float, jax.Array, Schedule]
 def tree_full_like(
     tree: Any,
     fill_value: jax.typing.ArrayLike,
-    dtype: Optional[jax.typing.DTypeLike] = None,
+    dtype: Optional = None,
 ) -> Any:
   """Creates an identical tree where all tensors are filled with ``fill_value``.
   
