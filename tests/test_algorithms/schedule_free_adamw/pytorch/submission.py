@@ -125,6 +125,8 @@ class AdamWScheduleFree(torch.optim.Optimizer):
             step_size = lr * math.sqrt(bias_correction2)
 
             for p in group['params']:
+                print('P!!!!!!!!!!!!!!!!!!!')
+                print(p)
                 if p.grad is None:
                     continue
                 grad = p.grad.data
