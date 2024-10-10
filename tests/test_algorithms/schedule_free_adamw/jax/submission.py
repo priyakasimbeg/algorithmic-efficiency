@@ -105,8 +105,7 @@ def pmapped_train_step(workload,
 
   grad_norm = jnp.sqrt(
       sum(jnp.sum(g**2) for g in jax.tree_util.tree_leaves(grad)))
-  print('GRAD NORM')
-  jax.debug.print(grad_norm)
+  jax.debug.print('GRAD NORM {}', grad_norm)
 
   if grad_clip is not None:
     grad_scaling_factor = grad_clip / (grad_norm + _GRAD_CLIP_EPS)
