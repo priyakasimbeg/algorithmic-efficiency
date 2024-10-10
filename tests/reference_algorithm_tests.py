@@ -385,6 +385,7 @@ def _make_one_batch_workload(workload_class,
     def eval_model(self, *args, **kwargs):
       eval_result = super().eval_model(*args, **kwargs)
       self.metrics_logger.append_eval_metrics(eval_result)
+      print("eval_result", eval_result)
       return eval_result
 
   return _OneEvalBatchWorkload()
