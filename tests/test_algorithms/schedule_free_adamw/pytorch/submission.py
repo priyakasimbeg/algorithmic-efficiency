@@ -124,6 +124,7 @@ class AdamWScheduleFree(torch.optim.Optimizer):
             bias_correction2 = 1 - beta2 ** (k+1)
             step_size = lr * math.sqrt(bias_correction2)
 
+            num_params = 0
             grad_norm = 0
             for p in group['params']:
                 if p.grad is None:
@@ -131,6 +132,7 @@ class AdamWScheduleFree(torch.optim.Optimizer):
                 grad = p.grad.data
 
                 grad_norm = grad_norm + torch.sum(grad**2)
+                num_params = num_params + torch.numel(p)
 
                 state = self.state[p]
 
@@ -158,6 +160,8 @@ class AdamWScheduleFree(torch.optim.Optimizer):
             group['k'] = k+1
             grad_norm = torch.sqrt(grad_norm)
             print('GRAD NORM', grad_norm)
+            print('NUM_PARAMS', num_params)
+
         return loss
 
 def init_optimizer_state(workload: spec.Workload,

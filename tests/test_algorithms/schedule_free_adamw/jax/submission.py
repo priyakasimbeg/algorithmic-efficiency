@@ -105,7 +105,14 @@ def pmapped_train_step(workload,
 
   grad_norm = jnp.sqrt(
       sum(jnp.sum(g**2) for g in jax.tree_util.tree_leaves(grad)))
+
+  # Extract the leaves of the pytree
+  leaves = tree_util.tree_leaves(grad)
+  # Count the total number of elements in all leaves
+  total_size = sum(jnp.size(leaf) for leaf in leaves)
+
   jax.debug.print('GRAD NORM {}', grad_norm)
+  jax.debug.print('NUM PARAMS {}', total_size)
 
   if grad_clip is not None:
     grad_scaling_factor = grad_clip / (grad_norm + _GRAD_CLIP_EPS)
