@@ -124,13 +124,14 @@ class AdamWScheduleFree(torch.optim.Optimizer):
             bias_correction2 = 1 - beta2 ** (k+1)
             step_size = lr * math.sqrt(bias_correction2)
 
+            grad_norm = 0
             for p in group['params']:
-                print('P!!!!!!!!!!!!!!!!!!!')
-                print(p)
                 if p.grad is None:
                     continue
                 grad = p.grad.data
-                
+
+                grad_norm = grad_norm + torch.sum(grad**2)
+
                 state = self.state[p]
 
                 exp_avg_sq = state['exp_avg_sq']
@@ -155,6 +156,8 @@ class AdamWScheduleFree(torch.optim.Optimizer):
                 p.data.lerp_(end=z, weight=ckp1)
 
             group['k'] = k+1
+            grad_norm = torch.sqrt(grad_norm)
+            print('GRAD NORM', grad_norm)
         return loss
 
 def init_optimizer_state(workload: spec.Workload,
